@@ -62,8 +62,13 @@ export function qualityGate(token) {
     if (token.maxEarlyBuySol > QUALITY_MAX_BUY_SOL)
       return fail(`whale buy: ${token.maxEarlyBuySol.toFixed(2)} SOL while MC <$${QUALITY_MC_THRESHOLD}`);
 
-    // uniqueBuyers is a Set — use .size, handle null (freed after history loads)
-    const buyerCount = token.uniqueBuyers?.size ?? token.resolvedBuyerCount ?? 0;
+    // Take the MAX of live-observed and historically resolved buyer counts.
+    // resolvedBuyerCount is set in loadHistory from Helius data + live ticks at that point.
+    // uniqueBuyers.size only has buyers seen during our current observation window.
+    const buyerCount = Math.max(
+      token.uniqueBuyers?.size ?? 0,
+      token.resolvedBuyerCount ?? 0
+    );
     if (buyerCount < QUALITY_MIN_BUYERS)
       return fail(`only ${buyerCount} unique buyers, need ${QUALITY_MIN_BUYERS}`);
 

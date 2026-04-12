@@ -13,7 +13,7 @@ export const ENTRY_MC_MAX         = 50_000;   // never enter above $50K
 export const MAX_POOL_SOL         = 70;       // skip tokens with >70 SOL in bonding curve (too big)
 
 // ── Token quality (new pairs only) ───────────────────────────────
-export const QUALITY_MIN_BUYERS   = 10;       // 10+ unique buyers required (lowered for new tokens)
+export const QUALITY_MIN_BUYERS   = 5;        // 5+ unique buyers required (our observation window is short)
 export const QUALITY_MAX_BUY_SOL  = 1.6;     // no single buy >1.6 SOL while MC <$5K (whale filter)
 export const QUALITY_MC_THRESHOLD = 5_000;   // above this MC, large buys are fine
 export const BUNDLE_TXN_THRESHOLD = 6;       // >=6 txns in same second = bundled, skip
