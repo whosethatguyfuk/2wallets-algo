@@ -261,6 +261,12 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
       return { type: 'DISARM', token };
     }
 
+    // MC dropped below tradeable range — disarm
+    if (mc < ENTRY_MC_MIN) {
+      transition(token, STATE.FLOORED, `MC $${mc.toFixed(0)} dropped below min $${ENTRY_MC_MIN}`, log);
+      return { type: 'DISARM', token };
+    }
+
     // In real trading mode — only LaserStream can trigger a buy
     // Runner sets isLaser=true only for LaserStream ticks
     // This gate is enforced here structurally — not in a nested if
