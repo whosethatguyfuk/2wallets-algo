@@ -118,6 +118,7 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
   const nowSec = now / 1000;
 
   // ── If in trade: manage exit ──────────────────────────────────
+  // Pure order flow — exit gates run on EVERY tick immediately. No hold timer.
   if (token.state === STATE.HOLDING || token.state === STATE.EXIT_UNLOCKED) {
     const trade   = token.activeTrade;
     if (!trade) return null;
@@ -131,12 +132,12 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
 
     const holdSec = (now - trade.entryTs) / 1000;
 
-    // Unlock exit after MIN_HOLD_SECS
-    if (token.state === STATE.HOLDING && holdSec >= MIN_HOLD_SECS) {
-      transition(token, STATE.EXIT_UNLOCKED, `hold timer expired (${holdSec.toFixed(1)}s)`, log);
+    // Immediately move to EXIT_UNLOCKED — no hold timer in order-flow mode
+    if (token.state === STATE.HOLDING) {
+      transition(token, STATE.EXIT_UNLOCKED, `order-flow mode: exit gates active immediately`, log);
     }
 
-    // Run exit gates
+    // Run exit gates every tick — order book decides
     const exitResult = runExitGates(trade, token, isBuy, sol, holdSec, log);
     if (exitResult.exit) {
       return closeTrade(token, mc, now, exitResult.reason, log);

@@ -32,30 +32,31 @@ export const FLOOR_MIN_TOUCHES    = 2;       // floor must have been tested 2+ t
 export const FLOOR_TOUCH_PCT      = 0.05;    // ±5% = "touching the same level"
 
 // ── Arm → Catalyst ───────────────────────────────────────────────
-export const CATALYST_MIN_SOL     = 0.25;    // minimum SOL buy to confirm catalyst (0.10 was too weak — triggered on dying tokens)
-export const CATALYST_MAX_SPIKE   = 0.10;    // if catalyst spiked MC >10% from pre-catalyst, skip (5% was too tight — healthy bounces are 5-8%)
+// Fire on the FIRST qualifying buy — do NOT wait for momentum cluster.
+// We want to be the first bid after the catalyst, not the exit liquidity.
+export const CATALYST_MIN_SOL     = 0.15;    // minimum SOL buy to trigger entry
 export const ARM_TIMEOUT_SECS     = 120;     // disarm if no catalyst in 120s
 
 // ── Execution ────────────────────────────────────────────────────
 export const POSITION_SOL         = Number(process.env.POSITION_SOL) || 0.2;
 export const MAX_CONCURRENT       = 3;       // max simultaneous open positions
 
-// ── Hold — the most important rule ──────────────────────────────
-// Wallet-A holds winners 217s avg, 92s median.
-// We will NOT exit before MIN_HOLD_SECS under any circumstances.
-// This is enforced by setTimeout, not a soft check.
-export const MIN_HOLD_SECS        = 30;      // absolute minimum — nothing fires before this
-export const SELLER_EXIT_MIN_HOLD = 15;      // SELLER_EXIT gets a slightly shorter gate (big sell = real signal)
+// ── Hold ─────────────────────────────────────────────────────────
+// Pure order-flow strategy — NO time-based holds.
+// Our bid tests the price level. The order book tells us if it holds.
+// Sells on top = level rejected = exit immediately. No hold timers.
+export const MIN_HOLD_SECS        = 0;       // no minimum hold — order flow decides instantly
 
 // ── Exit thresholds ──────────────────────────────────────────────
-export const SELLER_EXIT_SOL      = 0.30;    // any sell ≥ 0.30 SOL on top of us = exit
-export const STOP_LOSS_PCT        = 8;       // hard stop at -8% (pump.fun swings 5% on single ticks — 5% was too tight)
-export const TAKE_PROFIT_PCT      = 15;      // base TP (dynamic based on conviction)
-export const TRAIL_ACTIVATE_PCT   = 7;       // start trailing after +7% gain
-export const TRAIL_KEEP_PCT       = 0.55;    // keep 55% of peak gain on trail
-export const MAX_HOLD_SECS        = 300;     // 5 min hard max — no zombie trades
-export const CONVICTION_HOLD_SECS = 60;      // weak conviction exit needs 60s minimum
-export const CONVICTION_SELL_RATIO= 1.5;     // sells must be 1.5x buys to trigger conviction exit
+// PRIMARY exit: sell appears on top of our position = level is weak = out NOW
+export const SELLER_EXIT_SOL      = 0.15;    // sell ≥ 0.15 SOL on top of us = exit immediately
+// SAFETY NET: price bleeds without big sells (should be rare at confirmed floor)
+export const STOP_LOSS_PCT        = 4;       // hard stop -4% (floor test should bounce, not bleed)
+// PROFIT: trail very early, let winners run, seller exit handles the rest
+export const TAKE_PROFIT_PCT      = 20;      // flat TP fallback only
+export const TRAIL_ACTIVATE_PCT   = 3;       // trail from +3% gain
+export const TRAIL_KEEP_PCT       = 0.60;    // keep 60% of peak gain
+export const MAX_HOLD_SECS        = 180;     // 3 min hard cap — zombie prevention only
 
 // ── Re-entry rules ───────────────────────────────────────────────
 // NEVER re-enter a token above its last exit price.

@@ -14,13 +14,12 @@ import {
   QUALITY_MIN_BUYERS, QUALITY_MAX_BUY_SOL, QUALITY_MC_THRESHOLD,
   BUNDLE_TXN_THRESHOLD, HISTORY_MIN_TRADES,
   FLOOR_ARM_ZONE_PCT, FLOOR_MIN_TOUCHES, FLOOR_TOUCH_PCT,
-  CATALYST_MIN_SOL, CATALYST_MAX_SPIKE,
+  CATALYST_MIN_SOL,
   MAX_CONCURRENT, MAX_TRADES_PER_TOKEN,
   REENTRY_MAX_ABOVE_EXIT, REENTRY_COOLDOWN_SECS,
   SELLER_EXIT_SOL, STOP_LOSS_PCT, TAKE_PROFIT_PCT,
   TRAIL_ACTIVATE_PCT, TRAIL_KEEP_PCT, MAX_HOLD_SECS,
-  CONVICTION_HOLD_SECS, CONVICTION_SELL_RATIO,
-  SELLER_EXIT_MIN_HOLD, MIN_HOLD_SECS,
+  MIN_HOLD_SECS,
   MAYHEM_AGENT_WALLET, STATE,
 } from './rules.js';
 
@@ -181,9 +180,8 @@ export function concurrencyGate(openCount) {
 
 // ── GATE 8: Catalyst Gate ────────────────────────────────────────
 // Must be a BUY tick. Must be >= CATALYST_MIN_SOL.
-// Must see buy MOMENTUM — not just one lone buy in a sea of sells.
-// Must not have spiked price too much (entering at local high).
-// This is the final gate before execution.
+// Fire on the FIRST qualifying buy — we want to be the first bid, not exit liq.
+// No momentum waiting. No spike checks. The order book handles the rest post-entry.
 export function catalystGate(token, isBuy, solAmount, currentMc) {
   if (!isBuy)
     return fail(`not a buy tick — catalyst must be a buy`);
@@ -191,33 +189,14 @@ export function catalystGate(token, isBuy, solAmount, currentMc) {
   if (solAmount < CATALYST_MIN_SOL)
     return fail(`catalyst too small: ${solAmount.toFixed(3)} SOL < ${CATALYST_MIN_SOL} SOL`);
 
-  // Buy momentum: require at least 2 buys in the last 15 seconds (including this one).
-  // A single buy on a dying token means nothing — real catalysts come in clusters.
-  const hist = token.mcHistory || [];
-  const now  = Date.now();
-  const recentBuys = hist.filter(h => h.ts >= now - 15_000 && h.isBuy);
-  if (recentBuys.length < 1) // current buy + at least 1 more in recent window
-    return fail(`no buy momentum: only 1 buy (this one) in last 15s — need cluster`);
-
-  // Spike check: median price of last 10s as baseline
-  const baseline = hist.filter(h => h.ts >= now - 10_000 && h.ts < now - 500);
-  if (baseline.length >= 2) {
-    const sorted  = baseline.map(h => h.mc).sort((a, b) => a - b);
-    const median  = sorted[Math.floor(sorted.length / 2)];
-    const spike   = (currentMc - median) / median;
-    if (spike > CATALYST_MAX_SPIKE)
-      return fail(`catalyst spiked price +${(spike*100).toFixed(1)}% vs 10s median $${median.toFixed(0)} — at local high`);
-    if (spike < -0.03)
-      return fail(`bearish tick: price dropped ${(spike*100).toFixed(1)}% vs 10s median`);
-  }
-
-  return pass(`catalyst confirmed: ${solAmount.toFixed(3)} SOL buy at $${currentMc.toFixed(0)} (${recentBuys.length + 1} buys in 15s)`);
+  return pass(`catalyst: ${solAmount.toFixed(3)} SOL buy at $${currentMc.toFixed(0)}`);
 }
 
-// ── EXIT GATES (called after hold timer unlocks) ─────────────────
+// ── EXIT GATES — Pure Order Flow ─────────────────────────────────
+// No time locks. The order book decides, not a clock.
+// Our bid tests a price level. If the level rejects us, we get out NOW.
 
-// Exit Gate 1: STOP LOSS — always instant, no hold gate
-// This is the ONLY exit that bypasses MIN_HOLD_SECS
+// Exit Gate 1: STOP LOSS — safety net for price bleeding without big sells
 export function stopLossGate(trade, currentMc) {
   const pnlPct = (currentMc - trade.entryMc) / trade.entryMc * 100;
   if (pnlPct <= -STOP_LOSS_PCT)
@@ -225,34 +204,24 @@ export function stopLossGate(trade, currentMc) {
   return { exit: false };
 }
 
-// Exit Gate 2: SELLER EXIT — big sell on top of us
-// Requires SELLER_EXIT_MIN_HOLD seconds (shorter than normal hold)
-export function sellerExitGate(trade, isBuy, solAmount, holdSec) {
+// Exit Gate 2: SELLER EXIT — sell appears on top of us = level rejected = out NOW
+// No hold timer. This is the primary exit signal.
+export function sellerExitGate(trade, isBuy, solAmount) {
   if (isBuy) return { exit: false };
-  if (holdSec < SELLER_EXIT_MIN_HOLD)
-    return { exit: false, reason: `seller exit blocked: only ${holdSec.toFixed(1)}s hold (need ${SELLER_EXIT_MIN_HOLD}s)` };
   if (solAmount >= SELLER_EXIT_SOL)
-    return { exit: true, reason: 'SELLER_EXIT', detail: `${solAmount.toFixed(3)} SOL sell detected` };
+    return { exit: true, reason: 'SELLER_EXIT', detail: `${solAmount.toFixed(3)} SOL sell = level rejected` };
   return { exit: false };
 }
 
-// Exit Gate 3: TAKE PROFIT — dynamic based on conviction
-export function takeProfitGate(trade, currentMc, holdSec) {
-  if (holdSec < MIN_HOLD_SECS) return { exit: false };
-
+// Exit Gate 3: TAKE PROFIT — trail from early, let winners run
+export function takeProfitGate(trade, currentMc) {
   const pnlPct  = (currentMc - trade.entryMc) / trade.entryMc * 100;
   const peakPnl = (trade.peakMc - trade.entryMc) / trade.entryMc * 100;
 
-  // Dynamic TP — raise TP if conviction is strong (mostly buys since entry)
-  const buyRatio = trade.totalVol > 0 ? trade.buyVol / trade.totalVol : 0.5;
-  let effectiveTP = TAKE_PROFIT_PCT;
-  if (buyRatio > 0.80 && peakPnl > 5) effectiveTP = 999; // let it run — trail only
-  else if (buyRatio > 0.65)           effectiveTP = TAKE_PROFIT_PCT * 1.3;
-
-  if (pnlPct >= effectiveTP)
+  if (pnlPct >= TAKE_PROFIT_PCT)
     return { exit: true, reason: 'TAKE_PROFIT', pnlPct };
 
-  // Trailing stop
+  // Trailing stop — activates at +3%, keeps 60% of peak
   if (peakPnl >= TRAIL_ACTIVATE_PCT) {
     const trailFloor = peakPnl * TRAIL_KEEP_PCT;
     if (pnlPct < trailFloor)
@@ -262,22 +231,7 @@ export function takeProfitGate(trade, currentMc, holdSec) {
   return { exit: false };
 }
 
-// Exit Gate 4: CONVICTION FADE — sells dominating, losing
-// Requires CONVICTION_HOLD_SECS (60s) — wallet data shows losers held 125-318s avg
-// We cut faster but still need enough data to judge conviction
-export function convictionGate(trade, holdSec) {
-  if (holdSec < CONVICTION_HOLD_SECS) return { exit: false };
-
-  const pnlPct   = (trade.currentMc - trade.entryMc) / trade.entryMc * 100;
-  const sellRatio = trade.totalVol > 0 ? trade.sellVol / trade.totalVol : 0;
-
-  if (sellRatio > (1 - 1/CONVICTION_SELL_RATIO) && pnlPct < 0)
-    return { exit: true, reason: 'CONVICTION_FADE', pnlPct };
-
-  return { exit: false };
-}
-
-// Exit Gate 5: MAX HOLD — hard cap, no zombie trades
+// Exit Gate 4: MAX HOLD — zombie prevention only
 export function maxHoldGate(holdSec) {
   if (holdSec >= MAX_HOLD_SECS)
     return { exit: true, reason: 'MAX_HOLD' };
@@ -312,34 +266,36 @@ export function runEntryGates(token, isBuy, solAmount, currentMc, openCount, log
 }
 
 // ── RUN ALL EXIT GATES IN ORDER ──────────────────────────────────
+// Pure order flow — no time locks. Every tick is checked immediately.
 export function runExitGates(trade, token, isBuy, solAmount, holdSec, log) {
   const mc = token.currentMc;
 
-  // Stop loss is ALWAYS checked first — no hold minimum
+  // 1. Stop loss — safety net first (price bleed without big sells)
   const sl = stopLossGate(trade, mc);
   if (sl.exit) {
     log('EXIT_GATE', token.symbol, token.mint, { gate: 'STOP_LOSS', pnl: sl.pnlPct?.toFixed(1) });
     return sl;
   }
 
-  // All other exits require hold minimum
-  if (holdSec < MIN_HOLD_SECS) {
-    log('EXIT_BLOCKED', token.symbol, token.mint, { holdSec: holdSec.toFixed(1), need: MIN_HOLD_SECS });
-    return { exit: false };
+  // 2. Seller exit — level rejected, out now (no hold timer)
+  const se = sellerExitGate(trade, isBuy, solAmount);
+  if (se.exit) {
+    log('EXIT_GATE', token.symbol, token.mint, { gate: 'SELLER_EXIT', holdSec: holdSec.toFixed(1) });
+    return se;
   }
 
-  const checks = [
-    sellerExitGate(trade, isBuy, solAmount, holdSec),
-    takeProfitGate(trade, mc, holdSec),
-    convictionGate(trade, holdSec),
-    maxHoldGate(holdSec),
-  ];
+  // 3. Take profit / trail
+  const tp = takeProfitGate(trade, mc);
+  if (tp.exit) {
+    log('EXIT_GATE', token.symbol, token.mint, { gate: tp.reason, pnl: tp.pnlPct?.toFixed(1) });
+    return tp;
+  }
 
-  for (const result of checks) {
-    if (result.exit) {
-      log('EXIT_GATE', token.symbol, token.mint, { gate: result.reason, holdSec: holdSec.toFixed(1) });
-      return result;
-    }
+  // 4. Max hold — zombie prevention
+  const mh = maxHoldGate(holdSec);
+  if (mh.exit) {
+    log('EXIT_GATE', token.symbol, token.mint, { gate: 'MAX_HOLD', holdSec: holdSec.toFixed(1) });
+    return mh;
   }
 
   return { exit: false };
