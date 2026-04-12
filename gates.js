@@ -180,7 +180,23 @@ export function concurrencyGate(openCount) {
   return pass(`${openCount}/${MAX_CONCURRENT} positions open`);
 }
 
-// ── GATE 8: Catalyst Gate ────────────────────────────────────────
+// ── GATE 8: Sell Pressure Gate ───────────────────────────────────
+// Pure order-flow check: if recent ticks are sell-dominated, the level is weak.
+// Entering into selling momentum = catching a knife. Wait for buying to resume.
+export function sellPressureGate(token) {
+  const recent = (token.mcHistory || []).slice(-12);
+  if (recent.length < 4) return pass(`too few ticks for pressure read (${recent.length})`);
+  let buySol = 0, sellSol = 0;
+  for (const h of recent) {
+    if (h.isBuy) buySol += (h.sol || 0);
+    else sellSol += (h.sol || 0);
+  }
+  if (sellSol > buySol * 2.5 && sellSol > 0.3)
+    return fail(`sell pressure: ${sellSol.toFixed(2)} SOL sold vs ${buySol.toFixed(2)} bought in last ${recent.length} ticks`);
+  return pass(`order flow ok: ${buySol.toFixed(2)} bought / ${sellSol.toFixed(2)} sold`);
+}
+
+// ── GATE 9: Catalyst Gate ────────────────────────────────────────
 // Must be a BUY tick. Must be >= CATALYST_MIN_SOL.
 // Fire on the FIRST qualifying buy — we want to be the first bid, not exit liq.
 // No momentum waiting. No spike checks. The order book handles the rest post-entry.
@@ -208,10 +224,13 @@ export function stopLossGate(trade, currentMc) {
 
 // Exit Gate 2: SELLER EXIT — sell appears on top of us = level rejected = out NOW
 // No hold timer. This is the primary exit signal.
-export function sellerExitGate(trade, isBuy, solAmount) {
+// Threshold scales with pool size: 0.5% of vSol means the sell is meaningful
+// relative to the token's liquidity, not just a flat number.
+export function sellerExitGate(trade, isBuy, solAmount, vSol) {
   if (isBuy) return { exit: false };
-  if (solAmount >= SELLER_EXIT_SOL)
-    return { exit: true, reason: 'SELLER_EXIT', detail: `${solAmount.toFixed(3)} SOL sell = level rejected` };
+  const dynamicThreshold = Math.max(SELLER_EXIT_SOL, (vSol || 30) * 0.005);
+  if (solAmount >= dynamicThreshold)
+    return { exit: true, reason: 'SELLER_EXIT', detail: `${solAmount.toFixed(3)} SOL sell >= ${dynamicThreshold.toFixed(3)} threshold (0.5% of ${(vSol||30).toFixed(0)} SOL pool)` };
   return { exit: false };
 }
 
@@ -245,14 +264,15 @@ export function maxHoldGate(holdSec) {
 // Returns first failure or final pass. Logs every gate.
 export function runEntryGates(token, isBuy, solAmount, currentMc, openCount, log) {
   const gates = [
-    ['HISTORY',     () => historyGate(token)],
-    ['QUALITY',     () => qualityGate(token)],
-    ['FLOOR',       () => floorGate(token)],
-    ['ARM_ZONE',    () => armZoneGate(token)],
-    ['ENTRY_MC',    () => entryMcGate(token)],
-    ['RE_ENTRY',    () => reentryGate(token)],
-    ['CONCURRENCY', () => concurrencyGate(openCount)],
-    ['CATALYST',    () => catalystGate(token, isBuy, solAmount, currentMc)],
+    ['HISTORY',       () => historyGate(token)],
+    ['QUALITY',       () => qualityGate(token)],
+    ['FLOOR',         () => floorGate(token)],
+    ['ARM_ZONE',      () => armZoneGate(token)],
+    ['ENTRY_MC',      () => entryMcGate(token)],
+    ['RE_ENTRY',      () => reentryGate(token)],
+    ['CONCURRENCY',   () => concurrencyGate(openCount)],
+    ['SELL_PRESSURE', () => sellPressureGate(token)],
+    ['CATALYST',      () => catalystGate(token, isBuy, solAmount, currentMc)],
   ];
 
   for (const [name, fn] of gates) {
@@ -264,7 +284,7 @@ export function runEntryGates(token, isBuy, solAmount, currentMc, openCount, log
     log('GATE_PASS', token.symbol, token.mint, { gate: name, reason: result.reason });
   }
 
-  return { pass: true, gate: 'ALL', reason: 'all 8 gates passed' };
+  return { pass: true, gate: 'ALL', reason: 'all 9 gates passed' };
 }
 
 // ── RUN ALL EXIT GATES IN ORDER ──────────────────────────────────
@@ -280,7 +300,7 @@ export function runExitGates(trade, token, isBuy, solAmount, holdSec, log) {
   }
 
   // 2. Seller exit — level rejected, out now (no hold timer)
-  const se = sellerExitGate(trade, isBuy, solAmount);
+  const se = sellerExitGate(trade, isBuy, solAmount, token.vSol);
   if (se.exit) {
     log('EXIT_GATE', token.symbol, token.mint, { gate: 'SELLER_EXIT', holdSec: holdSec.toFixed(1) });
     return se;

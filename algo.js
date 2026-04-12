@@ -19,7 +19,8 @@
 import { STATE, MIN_HOLD_SECS, REENTRY_COOLDOWN_SECS,
          ARM_TIMEOUT_SECS, TRADE_FEE_PCT, POSITION_SOL,
          MAX_TRADES_PER_TOKEN, FLOOR_TOUCH_PCT,
-         FLOOR_MIN_TOUCHES, UNLOCK_MC_USD, STOP_LOSS_PCT } from './rules.js';
+         FLOOR_MIN_TOUCHES, UNLOCK_MC_USD, STOP_LOSS_PCT,
+         ENTRY_MC_MIN } from './rules.js';
 
 import { runEntryGates, runExitGates, floorGate } from './gates.js';
 
@@ -205,7 +206,7 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     // This ensures we only arm tokens that have proven real demand.
     const hasRealPump = token.sessionHigh > floor * 1.50;
 
-    if (aboveFloor <= 0.08 && mc > floor * 0.85 && hasRealPump) {
+    if (aboveFloor <= 0.08 && mc > floor * 0.85 && hasRealPump && mc >= ENTRY_MC_MIN) {
       token.armedAt = nowSec;
       // Lock in floor touch evidence NOW — the 5-min mcHistory window will purge it
       // and floorGate would re-fail in runEntryGates if we don't preserve this.
