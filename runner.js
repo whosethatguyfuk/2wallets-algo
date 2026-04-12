@@ -674,16 +674,22 @@ app.get('/', (_req, res) => {
     async function halt()   { await fetch('/api/stop',   {method:'POST'}); }
     async function resume() { await fetch('/api/resume', {method:'POST'}); }
 
-    function copyCA(mint, el) {
+    // Delegated click — reads mint from data-mint at click time, never stale
+    document.getElementById('token-list').addEventListener('click', (e) => {
+      const row = e.target.closest('.token-row');
+      if (!row) return;
+      const mint = row.dataset.mint;
+      if (!mint) return;
       navigator.clipboard.writeText(mint).then(() => {
-        el.classList.add('copied');
-        el.querySelector('.copy-hint').textContent = '✓ copied';
+        row.classList.add('copied');
+        row.querySelector('.copy-hint').textContent = '✓ copied';
         setTimeout(() => {
-          el.classList.remove('copied');
-          el.querySelector('.copy-hint').textContent = 'copy CA';
+          row.classList.remove('copied');
+          const hint = row.querySelector('.copy-hint');
+          if (hint) hint.textContent = 'copy CA';
         }, 1500);
       });
-    }
+    });
 
     async function refresh() {
       const [s, ct] = await Promise.all([fetch('/api/stats'), fetch('/api/closed')]);
@@ -702,7 +708,7 @@ app.get('/', (_req, res) => {
       // Token list
       const tl = document.getElementById('token-list');
       tl.innerHTML = (stats.activeTokens || []).map(t => \`
-        <div class="token-row" onclick="copyCA('\${t.mint}', this)" title="\${t.mint}">
+        <div class="token-row" data-mint="\${t.mint}" title="\${t.mint}">
           <span>\${t.symbol}</span>
           <span class="state-badge state-\${t.state}">\${t.state}</span>
           <span style="color:#666;margin-left:auto">\$\${(t.mc||0).toLocaleString()}</span>
