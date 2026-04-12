@@ -923,6 +923,7 @@ app.get('/api/registry', (_req, res) => {
     buyers: Math.max(t.uniqueBuyers?.size ?? 0, t.resolvedBuyerCount ?? 0),
     histLoaded: t.historyLoaded, histTrades: t.historyTrades,
     liveTrades: t.liveTrades || 0, isSeeded: t.isSeeded || false,
+    bundled: !!t.bundled, mayhem: !!t.mayhemDetected, bundleTxCount: t.bundleTxCount || 0,
     lastTick: t.lastTickTs ? Math.round((Date.now() - t.lastTickTs) / 1000) + 's ago' : 'never',
   })).sort((a, b) => b.ath - a.ath);
   res.json(all);
