@@ -34,6 +34,7 @@ const PP_WS_URL     = 'wss://pumpportal.fun/api/data';
 
 // ── Import algo ──────────────────────────────────────────────────
 import { makeToken, onTick, confirmBuy, forceClose, updatePrice } from './algo.js';
+import { runEntryGates, floorGate } from './gates.js';
 import { UNLOCK_MC_USD, BUNDLE_TXN_THRESHOLD, BUNDLE_WINDOW_MS,
          QUALITY_MC_THRESHOLD, QUALITY_MAX_BUY_SOL,
          MAYHEM_AGENT_WALLET, STATE, POSITION_SOL } from './rules.js';
@@ -824,8 +825,6 @@ app.get('/api/diag', (_req, res) => {
 });
 
 app.get('/api/gates', (_req, res) => {
-  // Show gate results for ARMED and FLOORED tokens — the exact reason nothing fires
-  const { runEntryGates, floorGate } = require('./gates.js');
   const openCount = [...registry.values()].filter(t => t.activeTrade).length;
   const results = [];
 
