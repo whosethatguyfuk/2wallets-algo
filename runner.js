@@ -178,6 +178,14 @@ async function loadHistory(token) {
       floorTouches: token.historyFloorTouches,
       buyers:       token.resolvedBuyerCount,
     });
+
+    // Don't wait for next live tick — advance state immediately if history qualifies.
+    // Seeded old coins might not get fresh ticks for minutes; they'd stay WATCHING forever.
+    if (count >= HISTORY_MIN_TRADES && token.state === STATE.WATCHING && token.sessionLow < Infinity) {
+      const syntheticMc = token.sessionLow * 1.05; // conservative: just above floor
+      const event = onTick(token, syntheticMc, Date.now(), false, 0, openCount, false, log);
+      handleEvent(event).catch(() => {});
+    }
   } catch (e) {
     log('HISTORY_FAIL', token.symbol, token.mint, { error: e.message });
     // Do NOT set historyLoaded = true on failure. Token stays in WATCHING. No leaks.
@@ -690,6 +698,34 @@ app.get('/api/closed', (_req, res) => {
   }
   all.sort((a, b) => b.exitTs - a.exitTs);
   res.json(all.slice(0, 200));
+});
+
+// Debug endpoint — shows state breakdown for all tokens
+app.get('/api/debug', (_req, res) => {
+  const tokens = [...registry.values()];
+  const byState = {};
+  for (const t of tokens) {
+    byState[t.state] = (byState[t.state] || 0) + 1;
+  }
+  const samples = tokens
+    .filter(t => t.state !== STATE.WATCHING)
+    .slice(0, 20)
+    .map(t => ({
+      symbol:        t.symbol,
+      state:         t.state,
+      mc:            Math.round(t.currentMc),
+      sessionLow:    Math.round(t.sessionLow < Infinity ? t.sessionLow : 0),
+      histLoaded:    t.historyLoaded,
+      histTrades:    t.historyTrades,
+      floorTouches:  t.historyFloorTouches || 0,
+      floorTouchesLive: t.floorTouches || 0,
+      category:      t.category,
+    }));
+  const watching = tokens
+    .filter(t => t.state === STATE.WATCHING)
+    .slice(0, 5)
+    .map(t => ({ symbol: t.symbol, histLoaded: t.historyLoaded, histTrades: t.historyTrades }));
+  res.json({ byState, samples, watchingSample: watching });
 });
 
 app.get('/api/stream', (req, res) => {
