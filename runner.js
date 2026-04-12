@@ -522,6 +522,7 @@ function connectPP() {
   const ppMsgLog = [];
 
   ppWs.on('message', async (raw) => {
+    lastPpMsg = Date.now();
     let msg;
     try { msg = JSON.parse(raw.toString()); } catch { return; }
 
@@ -644,7 +645,11 @@ function connectPP() {
     setTimeout(connectPP, 3_000);
   });
 
-  ppWs.on('error', e => console.error('⚠️  PP error:', e.message));
+  ppWs.on('error', e => {
+    console.error('⚠️  PP error:', e.message);
+    ppReady = false;
+    try { ppWs.close(); } catch (_) {}
+  });
 }
 
 // ── SOL price updater ─────────────────────────────────────────────
@@ -657,6 +662,21 @@ async function refreshSolPrice() {
 }
 setInterval(refreshSolPrice, 30_000);
 refreshSolPrice();
+
+// ── PumpPortal heartbeat — reconnect if stuck ──────────────────
+let lastPpMsg = Date.now();
+setInterval(() => {
+  const silentSec = (Date.now() - lastPpMsg) / 1000;
+  if (silentSec > 30 && ppReady) {
+    console.log(`⚠️  PP silent for ${silentSec.toFixed(0)}s — forcing reconnect`);
+    ppReady = false;
+    try { ppWs.close(); } catch (_) {}
+  }
+  if (!ppReady && silentSec > 10) {
+    console.log('🔄 PP not ready, reconnecting...');
+    connectPP();
+  }
+}, 15_000);
 
 // ── Wallet balance ────────────────────────────────────────────────
 async function refreshWallet() {
