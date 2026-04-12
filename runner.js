@@ -731,7 +731,13 @@ app.get('/api/stats', (_req, res) => {
   const watchingSample = tokens
     .filter(t => t.state === STATE.WATCHING)
     .slice(0, 5)
-    .map(t => ({ symbol: t.symbol, histLoaded: t.historyLoaded, histTrades: t.historyTrades }));
+    .map(t => ({
+      symbol:    t.symbol,
+      histLoaded: t.historyLoaded,
+      histTrades: t.historyTrades,
+      liveTrades: t.liveTrades || 0,
+      total:     (t.historyTrades || 0) + (t.liveTrades || 0),
+    }));
 
   res.json({
     version:    '1.1.0',
