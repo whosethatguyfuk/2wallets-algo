@@ -223,10 +223,8 @@ async function loadHistory(token) {
     });
 
     // Immediately check if we have enough total data to advance.
-    // Two cases:
-    //   1. Old/seeded coin: Helius loaded enough history (count >= HISTORY_MIN_TRADES)
-    //   2. New pair: live ticks accumulated while history was loading (liveTrades >= some)
-    // In both cases we use a synthetic tick to kick the state machine.
+    // For old/seeded coins with 0 Helius trades: live ticks will build history.
+    // historyLoaded=true is already set above — liveTrades alone can satisfy the gate.
     if (token.state === STATE.WATCHING) {
       const totalKnown = count + (token.liveTrades || 0);
       const refMc      = token.currentMc > 0 ? token.currentMc

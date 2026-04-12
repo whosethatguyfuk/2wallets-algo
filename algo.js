@@ -160,10 +160,12 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     // If we only count after historyLoaded, we miss the initial rush.
     token.liveTrades = (token.liveTrades || 0) + 1;
 
-    // For new tokens: 10 live ticks + history loaded (even if 0 Helius trades).
-    // For old/seeded tokens: Helius history must have trades (floor evidence).
-    const totalKnown = token.historyTrades + (token.liveTrades || 0);
-    if (token.historyLoaded && totalKnown >= 10) {
+    // New tokens: need 10 total (live ticks come fast, history loads in seconds)
+    // Old/seeded tokens: trade slowly — only need 3 live ticks once history is loaded
+    // They already have ATH proof and Helius history; a few live ticks confirm active market
+    const totalKnown = (token.historyTrades || 0) + (token.liveTrades || 0);
+    const minTrades  = token.isSeeded ? 3 : 10;
+    if (token.historyLoaded && totalKnown >= minTrades) {
       transition(token, STATE.INDEXED, `ready (hist:${token.historyTrades} live:${token.liveTrades})`, log);
     }
     return null;
