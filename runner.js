@@ -37,7 +37,7 @@ import { makeToken, onTick, confirmBuy, forceClose, updatePrice } from './algo.j
 import { runEntryGates, floorGate } from './gates.js';
 import { UNLOCK_MC_USD, BUNDLE_TXN_THRESHOLD, BUNDLE_WINDOW_MS,
          QUALITY_MC_THRESHOLD, QUALITY_MAX_BUY_SOL,
-         MAYHEM_AGENT_WALLET, STATE, POSITION_SOL } from './rules.js';
+         MAYHEM_AGENT_WALLET, STATE, POSITION_SOL, MAX_HOLD_SECS } from './rules.js';
 
 // ── Real trading imports (only if REAL_TRADING=true) ─────────────
 let executeBuy, executeSell, armForMint, disarmMint, openLaserStream, getSolBalance, initWallet;
@@ -1097,28 +1097,26 @@ setInterval(() => {
 }, 5 * 60_000);
 
 // ── Watchdog: force-close dead/zombie trades (tick-independent) ──────────────
-// Checks every 5s. Two conditions:
-// 1. No meaningful buys after 10s (buyVol < 0.01 catches dust)
-// 2. Hard MAX_HOLD cap — no trade should EVER exceed 180s regardless of ticks
-import { MAX_HOLD_SECS } from './rules.js';
 setInterval(() => {
-  for (const [, token] of registry) {
-    if (token.state !== STATE.HOLDING && token.state !== STATE.EXIT_UNLOCKED) continue;
-    const trade = token.activeTrade;
-    if (!trade) continue;
-    const holdSec = (Date.now() - trade.entryTs) / 1000;
+  try {
+    for (const [, token] of registry) {
+      if (token.state !== STATE.HOLDING && token.state !== STATE.EXIT_UNLOCKED) continue;
+      const trade = token.activeTrade;
+      if (!trade) continue;
+      const holdSec = (Date.now() - trade.entryTs) / 1000;
 
-    if (holdSec >= 10 && (trade.buyVol || 0) < 0.01) {
-      log('WATCHDOG', token.symbol, token.mint, { holdSec: holdSec.toFixed(1), reason: 'no buys after 10s' });
-      const event = forceClose(token, token.currentMc, log);
-      if (event) { openCount = Math.max(0, openCount - 1); handleEvent(event).catch(() => {}); }
-      continue;
-    }
+      if (holdSec >= 10 && (trade.buyVol || 0) < 0.01) {
+        log('WATCHDOG', token.symbol, token.mint, { holdSec: holdSec.toFixed(1), buyVol: trade.buyVol, reason: 'no buys 10s' });
+        const event = forceClose(token, token.currentMc, log);
+        if (event) { openCount = Math.max(0, openCount - 1); handleEvent(event).catch(e => console.error('watchdog handle err', e)); }
+        continue;
+      }
 
-    if (holdSec >= MAX_HOLD_SECS) {
-      log('WATCHDOG', token.symbol, token.mint, { holdSec: holdSec.toFixed(1), reason: `max hold ${MAX_HOLD_SECS}s` });
-      const event = forceClose(token, token.currentMc, log);
-      if (event) { openCount = Math.max(0, openCount - 1); handleEvent(event).catch(() => {}); }
+      if (holdSec >= MAX_HOLD_SECS) {
+        log('WATCHDOG', token.symbol, token.mint, { holdSec: holdSec.toFixed(1), reason: 'max hold' });
+        const event = forceClose(token, token.currentMc, log);
+        if (event) { openCount = Math.max(0, openCount - 1); handleEvent(event).catch(e => console.error('watchdog handle err', e)); }
+      }
     }
-  }
+  } catch (e) { console.error('WATCHDOG ERROR:', e); }
 }, 5_000);
