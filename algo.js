@@ -156,10 +156,11 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
       transition(token, STATE.EXIT_UNLOCKED, `order-flow mode: exit gates active immediately`, log);
     }
 
-    // No-follow-through exit: if after 5 ticks we've seen zero buys,
-    // the catalyst was isolated — exit before bleeding to stop loss
-    if (trade.tickCount >= 5 && trade.buyVol === 0) {
-      log('EXIT_GATE', token.symbol, token.mint, { gate: 'NO_FOLLOWTHROUGH', ticks: trade.tickCount });
+    // No-follow-through exit: catalyst was isolated, no buyers followed
+    // Tick-based: 5 ticks with 0 buys = dead entry
+    // Time-based: 10s with 0 buys = slow-ticking tokens bleed without triggering tick gate
+    if (trade.buyVol === 0 && (trade.tickCount >= 5 || holdSec >= 10)) {
+      log('EXIT_GATE', token.symbol, token.mint, { gate: 'NO_FOLLOWTHROUGH', ticks: trade.tickCount, holdSec: holdSec.toFixed(1) });
       return closeTrade(token, mc, now, 'NO_FOLLOWTHROUGH', log);
     }
 
