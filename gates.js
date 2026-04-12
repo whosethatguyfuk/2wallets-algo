@@ -184,22 +184,23 @@ export function concurrencyGate(openCount) {
 // Pure order-flow check: if recent ticks are sell-dominated, the level is weak.
 // Entering into selling momentum = catching a knife. Wait for buying to resume.
 export function sellPressureGate(token) {
-  const recent = (token.mcHistory || []).slice(-12);
-  // Dead market = no conviction. Need at least 4 recent ticks to read the order flow.
-  // Without this, isolated catalyst buys into empty markets pass — and they always lose.
-  if (recent.length < 4) return fail(`dead market: only ${recent.length} ticks in window — need activity`);
+  // Exclude the CURRENT tick (the catalyst itself) — we want PRE-entry order flow
+  const hist = token.mcHistory || [];
+  const recent = hist.length > 1 ? hist.slice(-13, -1) : [];
+  // Dead market = no conviction. Need at least 4 pre-catalyst ticks.
+  if (recent.length < 4) return fail(`dead market: only ${recent.length} pre-catalyst ticks — need activity`);
   let buySol = 0, sellSol = 0;
   for (const h of recent) {
     if (h.isBuy) buySol += (h.sol || 0);
     else sellSol += (h.sol || 0);
   }
-  // Must have at least SOME buying activity (besides the catalyst)
+  // Must have at least SOME buying activity before the catalyst
   const recentBuys = recent.filter(h => h.isBuy).length;
   if (recentBuys === 0)
-    return fail(`no buying activity in last ${recent.length} ticks — dead level`);
+    return fail(`no pre-catalyst buying in last ${recent.length} ticks — isolated catalyst`);
   if (sellSol > buySol * 2.5 && sellSol > 0.3)
-    return fail(`sell pressure: ${sellSol.toFixed(2)} SOL sold vs ${buySol.toFixed(2)} bought in last ${recent.length} ticks`);
-  return pass(`order flow ok: ${buySol.toFixed(2)} bought / ${sellSol.toFixed(2)} sold (${recentBuys} buys in ${recent.length} ticks)`);
+    return fail(`sell pressure: ${sellSol.toFixed(2)} SOL sold vs ${buySol.toFixed(2)} bought`);
+  return pass(`pre-entry flow ok: ${buySol.toFixed(2)} bought / ${sellSol.toFixed(2)} sold (${recentBuys} buys in ${recent.length} ticks)`);
 }
 
 // ── GATE 9: Catalyst Gate ────────────────────────────────────────
