@@ -89,10 +89,14 @@ function broadcast(obj) {
 }
 
 // ── Helius: load history ──────────────────────────────────────────
-// Uses Helius enhanced transactions API with type=SWAP which correctly
-// parses pump.fun bonding curve transactions (custom IDL, not standard SPL).
-// Raw RPC signatures + /v0/transactions returned 0 token transfers because
-// pump.fun uses a non-standard program that requires Helius enrichment.
+// Mirrors the working approach from alligator2.4/auditEarlyTrades:
+//   1. getSignaturesForAddress (raw RPC) → get all sigs
+//   2. /v0/transactions (enhanced, no type filter) → parse enriched txs
+//   3. Keep tx if source=PUMP_FUN OR type=SWAP (not URL-filtered — pump.fun
+//      transactions sometimes have different type classifications)
+const PUMP_PROGRAM_ID   = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
+const PUMP_TOTAL_SUPPLY = 1_073_000_191; // actual pump.fun supply (6 decimals)
+
 async function loadHistory(token) {
   if (!HELIUS_KEY) {
     token.historyLoaded = true;
@@ -101,60 +105,92 @@ async function loadHistory(token) {
   }
 
   try {
-    // Helius enhanced API — type=SWAP correctly parses pump.fun events
-    const url = `https://api.helius.xyz/v0/addresses/${token.mint}/transactions?api-key=${HELIUS_KEY}&limit=100&type=SWAP`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(15_000) });
-    if (!r.ok) {
-      log('HISTORY_FAIL', token.symbol, token.mint, { error: `helius ${r.status}` });
-      // Don't set historyLoaded — will retry on next run
-      return;
-    }
-    const txs = await r.json();
-    if (!Array.isArray(txs)) {
-      log('HISTORY_FAIL', token.symbol, token.mint, { error: 'non-array response' });
+    // Step 1: get all signatures for this mint address
+    const sigRes = await fetch(HELIUS_RPC, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        jsonrpc: '2.0', id: 1,
+        method:  'getSignaturesForAddress',
+        params:  [token.mint, { limit: 150 }],
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    const sigData = await sigRes.json();
+    const sigs = (sigData.result || []).map(s => s.signature).filter(Boolean);
+
+    if (sigs.length === 0) {
+      // Brand new token with no txns yet — mark loaded with 0 trades
+      token.historyLoaded = true;
+      token.historyTrades = 0;
+      log('HISTORY_NEW', token.symbol, token.mint, {});
       return;
     }
 
-    let count = 0;
+    // Step 2: parse enriched transactions (no type filter in URL!)
+    const txRes = await fetch(
+      `https://api.helius.xyz/v0/transactions/?api-key=${HELIUS_KEY}`,
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ transactions: sigs.slice(0, 100) }),
+        signal:  AbortSignal.timeout(15_000),
+      }
+    );
+    if (!txRes.ok) {
+      log('HISTORY_FAIL', token.symbol, token.mint, { error: `helius ${txRes.status}` });
+      return;
+    }
+    const txs = await txRes.json();
+    if (!Array.isArray(txs)) {
+      log('HISTORY_FAIL', token.symbol, token.mint, { error: 'non-array' });
+      return;
+    }
+
+    const allTrades = [];
     const historyBuyers = new Set();
 
     for (const tx of txs) {
-      // Helius SWAP events on pump.fun:
-      // - nativeTransfers: SOL movement (lamports)
-      // - tokenTransfers: token movement with tokenAmount (decimal-adjusted)
-      // - feePayer: the trader wallet
-      // - type: "SWAP"
-      const tt = tx.tokenTransfers || [];
-      const nt = tx.nativeTransfers || [];
+      if (tx.transactionError) continue;
+      // Keep pump.fun transactions regardless of type classification
+      if (tx.source !== 'PUMP_FUN' && tx.type !== 'SWAP') continue;
 
-      // Find our token's transfer
-      const tokTransfer = tt.find(t => t.mint === token.mint);
-      if (!tokTransfer) continue;
+      const tt  = tx.tokenTransfers || [];
+      const nt  = tx.nativeTransfers || [];
 
-      const tokAmt = Math.abs(tokTransfer.tokenAmount || 0);
+      const tokOut = tt.find(t => t.mint === token.mint);
+      if (!tokOut) continue;
+
+      const tokAmt = tokOut.tokenAmount || 0;
       if (tokAmt <= 0) continue;
 
-      // Net SOL movement (buy = SOL out from trader, sell = SOL in to trader)
-      let solAmt = 0;
-      for (const t of nt) solAmt += Math.abs(t.amount || 0) / 1e9;
+      // Largest native transfer = the SOL trade amount
+      const solAmt = Math.max(...nt.map(n => (n.amount || 0)), 0) / 1e9;
       if (solAmt <= 0) continue;
 
-      // Compute MC: (sol / tokens) * totalSupply * solPrice
-      // tokenAmount from Helius is decimal-adjusted (e.g. 1000.5, not 1000500000)
-      const SUPPLY  = 1_000_000_000;
-      const mc      = (solAmt / tokAmt) * SUPPLY * solPrice;
-      if (mc <= 0 || mc > 5_000_000) continue;
+      // Buy: tokens flow TO a non-program account
+      // Sell: tokens flow FROM trader back to bonding curve (PUMP_PROGRAM_ID)
+      const isBuy  = tokOut.toUserAccount !== PUMP_PROGRAM_ID;
+      const trader = isBuy ? tokOut.toUserAccount : tokOut.fromUserAccount;
 
-      // Buy = tokens flowing TO a non-program account (toUserAccount set)
-      // Sell = tokens flowing FROM trader (fromUserAccount is a real wallet)
-      const isBuy = !!(tokTransfer.toUserAccount && !tokTransfer.toUserAccount.includes('pump'));
+      // MC = price_per_token * total_supply * solPrice
+      const mcSol = (solAmt / tokAmt) * PUMP_TOTAL_SUPPLY;
+      const mcUsd = mcSol * solPrice;
+      if (mcUsd <= 0 || mcUsd > 500_000) continue;
 
-      updatePrice(token, mc, (tx.timestamp || 0) * 1000 || Date.now(), isBuy, solAmt);
+      allTrades.push({ ts: (tx.timestamp || 0) * 1000, isBuy, sol: solAmt, mc: mcUsd, trader });
+    }
 
+    // Sort chronologically (Helius returns newest-first)
+    allTrades.sort((a, b) => a.ts - b.ts);
+
+    let count = 0;
+    for (const { ts, isBuy, sol, mc, trader } of allTrades) {
+      updatePrice(token, mc, ts || Date.now(), isBuy, sol);
       if (isBuy) {
-        if (tx.feePayer) historyBuyers.add(tx.feePayer);
-        if (mc < QUALITY_MC_THRESHOLD && solAmt > QUALITY_MAX_BUY_SOL) {
-          token.maxEarlyBuySol = Math.max(token.maxEarlyBuySol, solAmt);
+        if (trader) historyBuyers.add(trader);
+        if (mc < QUALITY_MC_THRESHOLD && sol > QUALITY_MAX_BUY_SOL) {
+          token.maxEarlyBuySol = Math.max(token.maxEarlyBuySol, sol);
         }
       }
       count++;
