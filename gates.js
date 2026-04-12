@@ -181,6 +181,7 @@ export function concurrencyGate(openCount) {
 
 // ── GATE 8: Catalyst Gate ────────────────────────────────────────
 // Must be a BUY tick. Must be >= CATALYST_MIN_SOL.
+// Must see buy MOMENTUM — not just one lone buy in a sea of sells.
 // Must not have spiked price too much (entering at local high).
 // This is the final gate before execution.
 export function catalystGate(token, isBuy, solAmount, currentMc) {
@@ -190,11 +191,15 @@ export function catalystGate(token, isBuy, solAmount, currentMc) {
   if (solAmount < CATALYST_MIN_SOL)
     return fail(`catalyst too small: ${solAmount.toFixed(3)} SOL < ${CATALYST_MIN_SOL} SOL`);
 
-  // Check if this buy spiked price too hard (we'd be entering at local high).
-  // Use the median price of the last 10s of ticks as the baseline, not just 1 tick.
-  // This prevents a single anomalous tick from hiding a real spike.
-  const hist     = token.mcHistory || [];
-  const now      = Date.now();
+  // Buy momentum: require at least 2 buys in the last 15 seconds (including this one).
+  // A single buy on a dying token means nothing — real catalysts come in clusters.
+  const hist = token.mcHistory || [];
+  const now  = Date.now();
+  const recentBuys = hist.filter(h => h.ts >= now - 15_000 && h.isBuy);
+  if (recentBuys.length < 1) // current buy + at least 1 more in recent window
+    return fail(`no buy momentum: only 1 buy (this one) in last 15s — need cluster`);
+
+  // Spike check: median price of last 10s as baseline
   const baseline = hist.filter(h => h.ts >= now - 10_000 && h.ts < now - 500);
   if (baseline.length >= 2) {
     const sorted  = baseline.map(h => h.mc).sort((a, b) => a - b);
@@ -206,7 +211,7 @@ export function catalystGate(token, isBuy, solAmount, currentMc) {
       return fail(`bearish tick: price dropped ${(spike*100).toFixed(1)}% vs 10s median`);
   }
 
-  return pass(`catalyst confirmed: ${solAmount.toFixed(3)} SOL buy at $${currentMc.toFixed(0)}`);
+  return pass(`catalyst confirmed: ${solAmount.toFixed(3)} SOL buy at $${currentMc.toFixed(0)} (${recentBuys.length + 1} buys in 15s)`);
 }
 
 // ── EXIT GATES (called after hold timer unlocks) ─────────────────

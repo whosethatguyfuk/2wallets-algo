@@ -8,7 +8,7 @@
 
 // ── Discovery ────────────────────────────────────────────────────
 export const UNLOCK_MC_USD        = 8_000;    // token must have crossed $8K MC to be eligible for arming
-export const ENTRY_MC_MIN         = 3_500;    // never enter below $3.5K (floor zone for pump.fun tokens)
+export const ENTRY_MC_MIN         = 5_000;    // never enter below $5K (sub-$5K tokens are dying — no real demand)
 export const ENTRY_MC_MAX         = 50_000;   // never enter above $50K
 export const MAX_POOL_SOL         = 70;       // skip tokens with >70 SOL in bonding curve (too big)
 
@@ -32,7 +32,7 @@ export const FLOOR_MIN_TOUCHES    = 2;       // floor must have been tested 2+ t
 export const FLOOR_TOUCH_PCT      = 0.05;    // ±5% = "touching the same level"
 
 // ── Arm → Catalyst ───────────────────────────────────────────────
-export const CATALYST_MIN_SOL     = 0.10;    // minimum SOL buy to confirm catalyst (pump.fun typical range 0.1-0.5)
+export const CATALYST_MIN_SOL     = 0.25;    // minimum SOL buy to confirm catalyst (0.10 was too weak — triggered on dying tokens)
 export const CATALYST_MAX_SPIKE   = 0.05;    // if catalyst spiked MC >5% from pre-catalyst, skip (entering high)
 export const ARM_TIMEOUT_SECS     = 120;     // disarm if no catalyst in 120s
 
@@ -49,7 +49,7 @@ export const SELLER_EXIT_MIN_HOLD = 15;      // SELLER_EXIT gets a slightly shor
 
 // ── Exit thresholds ──────────────────────────────────────────────
 export const SELLER_EXIT_SOL      = 0.30;    // any sell ≥ 0.30 SOL on top of us = exit
-export const STOP_LOSS_PCT        = 5;       // hard stop at -5% (always instant, no hold gate)
+export const STOP_LOSS_PCT        = 8;       // hard stop at -8% (pump.fun swings 5% on single ticks — 5% was too tight)
 export const TAKE_PROFIT_PCT      = 15;      // base TP (dynamic based on conviction)
 export const TRAIL_ACTIVATE_PCT   = 7;       // start trailing after +7% gain
 export const TRAIL_KEEP_PCT       = 0.55;    // keep 55% of peak gain on trail
