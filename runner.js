@@ -669,13 +669,31 @@ app.get('/api/stats', (_req, res) => {
   const armed       = tokens.filter(t => t.state === STATE.ARMED).length;
   const open        = tokens.filter(t => t.state === STATE.HOLDING || t.state === STATE.EXIT_UNLOCKED || t.state === STATE.BUYING).length;
   const trades      = totalWins + totalLosses;
+
+  // State breakdown (debug — inline so no extra route needed)
+  const byState = {};
+  for (const t of tokens) byState[t.state] = (byState[t.state] || 0) + 1;
+
   const activeTokens = tokens
     .filter(t => ![STATE.WATCHING, STATE.BLACKLISTED].includes(t.state))
     .slice(0, 50)
-    .map(t => ({ symbol: t.symbol, mint: t.mint, state: t.state, mc: Math.round(t.currentMc) }));
+    .map(t => ({
+      symbol: t.symbol, mint: t.mint, state: t.state,
+      mc: Math.round(t.currentMc),
+      floor: Math.round(t.sessionLow < Infinity ? t.sessionLow : 0),
+      histTrades: t.historyTrades,
+      floorTouches: (t.historyFloorTouches || 0),
+      category: t.category,
+    }));
+
+  // Sample of stuck WATCHING tokens for diagnosis
+  const watchingSample = tokens
+    .filter(t => t.state === STATE.WATCHING)
+    .slice(0, 5)
+    .map(t => ({ symbol: t.symbol, histLoaded: t.historyLoaded, histTrades: t.historyTrades }));
 
   res.json({
-    version:    '1.0.0',
+    version:    '1.1.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol?.toFixed(4) ?? null,
@@ -687,7 +705,7 @@ app.get('/api/stats', (_req, res) => {
     tokens:     tokens.length,
     ppConnected: ppReady,
     laserSlots: laserSlots.size,
-    activeTokens,
+    byState, activeTokens, watchingSample,
   });
 });
 
