@@ -7,13 +7,13 @@
  */
 
 // ── Discovery ────────────────────────────────────────────────────
-export const UNLOCK_MC_USD        = 8_000;    // token must have crossed $8K MC to be watched
-export const ENTRY_MC_MIN         = 8_000;    // never enter below $8K
-export const ENTRY_MC_MAX         = 35_000;   // never enter above $35K (wallet data: sweet spot is $10-30K)
+export const UNLOCK_MC_USD        = 8_000;    // token must have crossed $8K MC to be eligible for arming
+export const ENTRY_MC_MIN         = 3_500;    // never enter below $3.5K (floor zone for pump.fun tokens)
+export const ENTRY_MC_MAX         = 50_000;   // never enter above $50K
 export const MAX_POOL_SOL         = 70;       // skip tokens with >70 SOL in bonding curve (too big)
 
 // ── Token quality (new pairs only) ───────────────────────────────
-export const QUALITY_MIN_BUYERS   = 25;       // 25+ unique buyers required
+export const QUALITY_MIN_BUYERS   = 10;       // 10+ unique buyers required (lowered for new tokens)
 export const QUALITY_MAX_BUY_SOL  = 1.6;     // no single buy >1.6 SOL while MC <$5K (whale filter)
 export const QUALITY_MC_THRESHOLD = 5_000;   // above this MC, large buys are fine
 export const BUNDLE_TXN_THRESHOLD = 6;       // >=6 txns in same second = bundled, skip

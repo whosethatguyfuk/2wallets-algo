@@ -31,13 +31,15 @@ const pct  = (a, b)          => ((a - b) / b * 100).toFixed(1) + '%';
 
 // ── GATE 1: History Gate ─────────────────────────────────────────
 // Token must have full on-chain history loaded.
+// For brand-new tokens (0 Helius trades), live ticks count too.
 // No history = can never trade. No exceptions. Ever.
 export function historyGate(token) {
   if (!token.historyLoaded)
     return fail(`history not loaded yet`);
-  if (token.historyTrades < HISTORY_MIN_TRADES)
-    return fail(`only ${token.historyTrades} historical trades, need ${HISTORY_MIN_TRADES}`);
-  return pass(`history loaded (${token.historyTrades} trades)`);
+  const total = (token.historyTrades || 0) + (token.liveTrades || 0);
+  if (total < HISTORY_MIN_TRADES)
+    return fail(`only ${total} total trades (hist:${token.historyTrades} live:${token.liveTrades||0}), need ${HISTORY_MIN_TRADES}`);
+  return pass(`history ok (${token.historyTrades} on-chain + ${token.liveTrades||0} live)`);
 }
 
 // ── GATE 2: Quality Gate ─────────────────────────────────────────
