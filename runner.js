@@ -296,9 +296,14 @@ async function seedOldCoins() {
         const athMc = c.ath_market_cap || c.usd_market_cap || 0;
         if (athMc < 8_000) continue;  // ATH must have been at least $8K
 
-        // Must be at least 10 min old
+        // Must be at least 10 min old — avoid competing with new-pair stream
         const ageMs = Date.now() - (c.created_timestamp || 0);
         if (ageMs < 10 * 60_000) continue;
+
+        // Must have traded in the last 60 min — dead coins have no ticks,
+        // no ticks = stuck in WATCHING forever, wastes a subscription slot
+        const lastTradeMs = Date.now() - ((c.last_trade_timestamp || 0) * 1000);
+        if (lastTradeMs > 60 * 60_000) continue;
 
         const token = await ensureToken(mint, c.symbol || mint.slice(0,6), c.name || '', 'old');
         token.isSeeded   = true;
