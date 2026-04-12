@@ -89,6 +89,10 @@ function broadcast(obj) {
 }
 
 // ── Helius: load history ──────────────────────────────────────────
+// Uses Helius enhanced transactions API with type=SWAP which correctly
+// parses pump.fun bonding curve transactions (custom IDL, not standard SPL).
+// Raw RPC signatures + /v0/transactions returned 0 token transfers because
+// pump.fun uses a non-standard program that requires Helius enrichment.
 async function loadHistory(token) {
   if (!HELIUS_KEY) {
     token.historyLoaded = true;
@@ -97,62 +101,63 @@ async function loadHistory(token) {
   }
 
   try {
-    // Step 1: get signatures
-    const sigRes = await fetch(HELIUS_RPC, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        jsonrpc: '2.0', id: 1, method: 'getSignaturesForAddress',
-        params:  [token.mint, { limit: 100 }],
-      }),
-      signal: AbortSignal.timeout(12_000),
-    });
-    const sigData = await sigRes.json();
-    const sigs = (sigData.result || []).map(s => s.signature);
-    if (!sigs.length) {
-      token.historyLoaded = true;
-      token.historyTrades = 0;
+    // Helius enhanced API — type=SWAP correctly parses pump.fun events
+    const url = `https://api.helius.xyz/v0/addresses/${token.mint}/transactions?api-key=${HELIUS_KEY}&limit=100&type=SWAP`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!r.ok) {
+      log('HISTORY_FAIL', token.symbol, token.mint, { error: `helius ${r.status}` });
+      // Don't set historyLoaded — will retry on next run
       return;
     }
-
-    // Step 2: parse transactions
-    const txRes = await fetch(`https://api.helius.xyz/v0/transactions?api-key=${HELIUS_KEY}`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ transactions: sigs.slice(0, 100) }),
-      signal:  AbortSignal.timeout(15_000),
-    });
-    const txs = await txRes.json();
-    if (!Array.isArray(txs)) throw new Error('bad response');
+    const txs = await r.json();
+    if (!Array.isArray(txs)) {
+      log('HISTORY_FAIL', token.symbol, token.mint, { error: 'non-array response' });
+      return;
+    }
 
     let count = 0;
     const historyBuyers = new Set();
 
     for (const tx of txs) {
+      // Helius SWAP events on pump.fun:
+      // - nativeTransfers: SOL movement (lamports)
+      // - tokenTransfers: token movement with tokenAmount (decimal-adjusted)
+      // - feePayer: the trader wallet
+      // - type: "SWAP"
       const tt = tx.tokenTransfers || [];
       const nt = tx.nativeTransfers || [];
-      let solAmt = 0, tokAmt = 0;
-      for (const t of nt) solAmt += Math.abs(t.amount || 0) / 1e9;
-      for (const t of tt) {
-        if (t.mint === token.mint) tokAmt += Math.abs(t.tokenAmount || 0);
-      }
-      if (solAmt > 0 && tokAmt > 0) {
-        const SUPPLY = 1_000_000_000;
-        const mc = (solAmt / tokAmt) * SUPPLY * solPrice;
-        if (mc > 0 && mc < 5_000_000) {
-          const isBuy = (tt.find(t => t.mint === token.mint)?.toUserAccount) ? true : false;
-          updatePrice(token, mc, tx.timestamp * 1000 || Date.now(), isBuy, solAmt);
 
-          if (isBuy) {
-            if (tx.feePayer) historyBuyers.add(tx.feePayer);
-            // Whale check during early price phase
-            if (mc < QUALITY_MC_THRESHOLD && solAmt > QUALITY_MAX_BUY_SOL) {
-              token.maxEarlyBuySol = Math.max(token.maxEarlyBuySol, solAmt);
-            }
-          }
-          count++;
+      // Find our token's transfer
+      const tokTransfer = tt.find(t => t.mint === token.mint);
+      if (!tokTransfer) continue;
+
+      const tokAmt = Math.abs(tokTransfer.tokenAmount || 0);
+      if (tokAmt <= 0) continue;
+
+      // Net SOL movement (buy = SOL out from trader, sell = SOL in to trader)
+      let solAmt = 0;
+      for (const t of nt) solAmt += Math.abs(t.amount || 0) / 1e9;
+      if (solAmt <= 0) continue;
+
+      // Compute MC: (sol / tokens) * totalSupply * solPrice
+      // tokenAmount from Helius is decimal-adjusted (e.g. 1000.5, not 1000500000)
+      const SUPPLY  = 1_000_000_000;
+      const mc      = (solAmt / tokAmt) * SUPPLY * solPrice;
+      if (mc <= 0 || mc > 5_000_000) continue;
+
+      // Buy = tokens flowing TO a non-program account (toUserAccount set)
+      // Sell = tokens flowing FROM trader (fromUserAccount is a real wallet)
+      const isBuy = !!(tokTransfer.toUserAccount && !tokTransfer.toUserAccount.includes('pump'));
+
+      updatePrice(token, mc, (tx.timestamp || 0) * 1000 || Date.now(), isBuy, solAmt);
+
+      if (isBuy) {
+        if (tx.feePayer) historyBuyers.add(tx.feePayer);
+        if (mc < QUALITY_MC_THRESHOLD && solAmt > QUALITY_MAX_BUY_SOL) {
+          token.maxEarlyBuySol = Math.max(token.maxEarlyBuySol, solAmt);
         }
       }
+      count++;
     }
 
     // Freeze floor touches BEFORE mcHistory gets pruned by live ticks.
