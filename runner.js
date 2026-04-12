@@ -185,6 +185,28 @@ async function loadHistory(token) {
     // Sort chronologically (Helius returns newest-first)
     allTrades.sort((a, b) => a.ts - b.ts);
 
+    // ── Bundle detection from history ────────────────────────────────
+    // A bundle = same wallet doing multiple buys within 2s of the first trade.
+    // Applies to ALL token categories (old seeded coins can be bundled too).
+    if (allTrades.length >= 3) {
+      const firstTs = allTrades[0].ts;
+      const earlyTrades = allTrades.filter(t => t.isBuy && t.ts - firstTs < 2_000);
+      const walletCounts = new Map();
+      for (const t of earlyTrades) {
+        if (t.trader) walletCounts.set(t.trader, (walletCounts.get(t.trader) || 0) + 1);
+      }
+      const maxSameWallet = Math.max(...walletCounts.values(), 0);
+      if (maxSameWallet >= BUNDLE_TXN_THRESHOLD) {
+        token.bundled       = true;
+        token.bundleTxCount = maxSameWallet;
+        log('BUNDLED_HISTORY', token.symbol, token.mint, {
+          wallet: [...walletCounts.entries()].find(([,v]) => v === maxSameWallet)?.[0]?.slice(0,8),
+          txns:   maxSameWallet,
+          windowMs: 2000,
+        });
+      }
+    }
+
     let count = 0;
     for (const { ts, isBuy, sol, mc, trader } of allTrades) {
       updatePrice(token, mc, ts || Date.now(), isBuy, sol);

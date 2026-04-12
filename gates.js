@@ -53,10 +53,12 @@ export function qualityGate(token) {
   if (token.vSol > MAX_POOL_SOL)
     return fail(`pool too large: ${token.vSol.toFixed(1)} SOL (max ${MAX_POOL_SOL})`);
 
-  // New pairs only: bundle + whale + buyer count
+  // Bundle check applies to ALL categories — old coins can be bundled too
+  if (token.bundled)
+    return fail(`bundled at launch (${token.bundleTxCount} txns same wallet in 2s)`);
+
+  // New pairs only: whale + buyer count
   if (token.category === 'new') {
-    if (token.bundled)
-      return fail(`bundled at launch (${token.bundleTxCount} txns in 1.5s)`);
 
     if (token.maxEarlyBuySol > QUALITY_MAX_BUY_SOL)
       return fail(`whale buy: ${token.maxEarlyBuySol.toFixed(2)} SOL while MC <$${QUALITY_MC_THRESHOLD}`);
