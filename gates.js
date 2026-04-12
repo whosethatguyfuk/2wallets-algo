@@ -185,15 +185,21 @@ export function concurrencyGate(openCount) {
 // Entering into selling momentum = catching a knife. Wait for buying to resume.
 export function sellPressureGate(token) {
   const recent = (token.mcHistory || []).slice(-12);
-  if (recent.length < 4) return pass(`too few ticks for pressure read (${recent.length})`);
+  // Dead market = no conviction. Need at least 4 recent ticks to read the order flow.
+  // Without this, isolated catalyst buys into empty markets pass — and they always lose.
+  if (recent.length < 4) return fail(`dead market: only ${recent.length} ticks in window — need activity`);
   let buySol = 0, sellSol = 0;
   for (const h of recent) {
     if (h.isBuy) buySol += (h.sol || 0);
     else sellSol += (h.sol || 0);
   }
+  // Must have at least SOME buying activity (besides the catalyst)
+  const recentBuys = recent.filter(h => h.isBuy).length;
+  if (recentBuys === 0)
+    return fail(`no buying activity in last ${recent.length} ticks — dead level`);
   if (sellSol > buySol * 2.5 && sellSol > 0.3)
     return fail(`sell pressure: ${sellSol.toFixed(2)} SOL sold vs ${buySol.toFixed(2)} bought in last ${recent.length} ticks`);
-  return pass(`order flow ok: ${buySol.toFixed(2)} bought / ${sellSol.toFixed(2)} sold`);
+  return pass(`order flow ok: ${buySol.toFixed(2)} bought / ${sellSol.toFixed(2)} sold (${recentBuys} buys in ${recent.length} ticks)`);
 }
 
 // ── GATE 9: Catalyst Gate ────────────────────────────────────────
