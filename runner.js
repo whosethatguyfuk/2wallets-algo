@@ -1058,4 +1058,20 @@ setInterval(() => {
     }
   }
   if (pruned > 0) log('PRUNE', 'system', 'system', { pruned, remaining: registry.size });
+
+  // ── Quality sweep: enforce firewall on tokens that stopped receiving ticks ──
+  // Tokens armed before a deploy can sit with stale flags. This sweeps them.
+  let swept = 0;
+  for (const [, token] of registry) {
+    if (token.state === STATE.BLACKLISTED || token.state === STATE.CLOSED) continue;
+    if (token.state === STATE.HOLDING || token.state === STATE.EXIT_UNLOCKED || token.state === STATE.BUYING) continue;
+    if (token.bundled || token.mayhemDetected) {
+      const reason = token.bundled ? `SWEEP: bundled (${token.bundleTxCount} txns)` : 'SWEEP: mayhem agent';
+      token.state = STATE.BLACKLISTED;
+      token.stateChangedAt = Date.now();
+      log('FIREWALL_SWEEP', token.symbol, token.mint, { reason });
+      swept++;
+    }
+  }
+  if (swept > 0) log('SWEEP', 'system', 'system', { swept });
 }, 5 * 60_000);
