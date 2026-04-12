@@ -71,6 +71,8 @@ let   startingSol   = null;
 let   solPrice      = 150;
 let   ppWs          = null;
 let   ppReady       = false;
+let   watchdogRuns  = 0;
+let   watchdogKills = 0;
 const sseClients    = new Set();
 
 // ── Logging ──────────────────────────────────────────────────────
@@ -1098,8 +1100,6 @@ setInterval(() => {
 }, 5 * 60_000);
 
 // ── Watchdog: force-close dead/zombie trades (tick-independent) ──────────────
-let watchdogRuns = 0;
-let watchdogKills = 0;
 setInterval(() => {
   watchdogRuns++;
   try {
