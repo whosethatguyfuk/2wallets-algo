@@ -8,7 +8,7 @@
 
 // ── Discovery ────────────────────────────────────────────────────
 export const UNLOCK_MC_USD        = 8_000;    // token must have crossed $8K MC to be eligible for arming
-export const ENTRY_MC_MIN         = 5_000;    // never enter below $5K (sub-$5K tokens are dying — no real demand)
+export const ENTRY_MC_MIN         = 4_000;    // pump.fun floors are ~$4.2K — 1.5x pump + momentum are the real filters
 export const ENTRY_MC_MAX         = 50_000;   // never enter above $50K
 export const MAX_POOL_SOL         = 70;       // skip tokens with >70 SOL in bonding curve (too big)
 
@@ -33,7 +33,7 @@ export const FLOOR_TOUCH_PCT      = 0.05;    // ±5% = "touching the same level"
 
 // ── Arm → Catalyst ───────────────────────────────────────────────
 export const CATALYST_MIN_SOL     = 0.25;    // minimum SOL buy to confirm catalyst (0.10 was too weak — triggered on dying tokens)
-export const CATALYST_MAX_SPIKE   = 0.05;    // if catalyst spiked MC >5% from pre-catalyst, skip (entering high)
+export const CATALYST_MAX_SPIKE   = 0.10;    // if catalyst spiked MC >10% from pre-catalyst, skip (5% was too tight — healthy bounces are 5-8%)
 export const ARM_TIMEOUT_SECS     = 120;     // disarm if no catalyst in 120s
 
 // ── Execution ────────────────────────────────────────────────────
