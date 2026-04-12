@@ -260,20 +260,23 @@ async function ensureToken(mint, symbol, name, category) {
 // tokens and seed the ones that look like they have price history.
 async function seedOldCoins() {
   try {
-    // Fetch established pump.fun coins sorted by market cap DESC.
-    // "Recently traded" misses established coins that pumped days ago and are now at floor.
-    // Market cap sort finds coins that actually had real demand — exactly our setup.
-    // Two pages: top 50 by MC + top 50 by last_reply (active community = more likely to pump again)
+    // Use pump.fun v3 API (v1 is Cloudflare-blocked from server IPs).
+    // Sort by last_trade_timestamp DESC — most recently active coins.
+    // We filter by ath_market_cap (peak MC) to find coins that actually pumped,
+    // even if they're now back at floor — that's exactly our setup.
     const urls = [
-      'https://frontend-api.pump.fun/coins?limit=50&offset=0&sort=market_cap&order=DESC&includeNsfw=false',
-      'https://frontend-api.pump.fun/coins?limit=50&offset=0&sort=last_reply&order=DESC&includeNsfw=false',
+      'https://frontend-api-v3.pump.fun/coins?limit=50&sort=last_trade_timestamp&order=DESC',
+      'https://frontend-api-v3.pump.fun/coins?limit=50&sort=last_reply&order=DESC',
     ];
 
     let seeded = 0;
     for (const url of urls) {
       let coins;
       try {
-        const r = await fetch(url, { signal: AbortSignal.timeout(8_000) });
+        const r = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(8_000),
+        });
         if (!r.ok) continue;
         coins = await r.json();
         if (!Array.isArray(coins)) continue;
@@ -283,22 +286,27 @@ async function seedOldCoins() {
         const mint = c.mint;
         if (!mint || registry.has(mint)) continue;
 
-        // Skip graduated tokens — different strategy needed
+        // Skip graduated tokens (bonding curve full)
         const vSol = (c.virtual_sol_reserves || 0) / 1e9;
         if (vSol > 85) continue;
 
-        // Must have reached a meaningful MC — filters out coins that never pumped
-        // usd_market_cap on pump.fun is in USD directly
-        const mcUsd = c.usd_market_cap || 0;
-        if (mcUsd < 8_000) continue;   // only seed coins that hit at least $8K MC
+        // KEY FILTER: use ath_market_cap (all-time high MC) not current MC.
+        // A coin that peaked at $20K and is now back at $4K floor is EXACTLY
+        // what we want — but its current MC would fail a naive filter.
+        const athMc = c.ath_market_cap || c.usd_market_cap || 0;
+        if (athMc < 8_000) continue;  // ATH must have been at least $8K
 
-        // Must be at least 10 min old — avoids competing with new-pair bot logic
+        // Must be at least 10 min old
         const ageMs = Date.now() - (c.created_timestamp || 0);
         if (ageMs < 10 * 60_000) continue;
 
         const token = await ensureToken(mint, c.symbol || mint.slice(0,6), c.name || '', 'old');
-        token.isSeeded  = true;
-        token.vSol      = vSol;
+        token.isSeeded   = true;
+        token.vSol       = vSol;
+        // Seed the session high from ATH so the pump proof is already known
+        if (c.ath_market_cap && c.ath_market_cap > (token.sessionHigh || 0)) {
+          token.sessionHigh = c.ath_market_cap;
+        }
 
         if (ppWs && ppWs.readyState === 1) {
           ppWs.send(JSON.stringify({ method: 'subscribeTokenTrade', keys: [mint] }));
