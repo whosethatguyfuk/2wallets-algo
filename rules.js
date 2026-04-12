@@ -34,7 +34,7 @@ export const FLOOR_TOUCH_PCT      = 0.05;    // ±5% = "touching the same level"
 // ── Arm → Catalyst ───────────────────────────────────────────────
 // Fire on the FIRST qualifying buy — do NOT wait for momentum cluster.
 // We want to be the first bid after the catalyst, not the exit liquidity.
-export const CATALYST_MIN_SOL     = 0.15;    // minimum SOL buy to trigger entry
+export const CATALYST_MIN_SOL     = 0.35;    // minimum SOL buy to trigger entry
 export const ARM_TIMEOUT_SECS     = 120;     // disarm if no catalyst in 120s
 
 // ── Execution ────────────────────────────────────────────────────
