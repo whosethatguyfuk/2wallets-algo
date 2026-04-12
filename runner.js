@@ -1075,3 +1075,21 @@ setInterval(() => {
   }
   if (swept > 0) log('SWEEP', 'system', 'system', { swept });
 }, 5 * 60_000);
+
+// ── Watchdog: force-close dead trades that stopped receiving ticks ──────────
+// The no-follow-through exit only fires ON a tick. If the market goes silent
+// after entry, no ticks arrive and the trade sits dead until MAX_HOLD.
+// This watchdog checks every 5s and kills trades with 0 buys after 10s.
+setInterval(() => {
+  for (const [, token] of registry) {
+    if (token.state !== STATE.HOLDING && token.state !== STATE.EXIT_UNLOCKED) continue;
+    const trade = token.activeTrade;
+    if (!trade) continue;
+    const holdSec = (Date.now() - trade.entryTs) / 1000;
+    if (holdSec >= 10 && trade.buyVol === 0) {
+      log('WATCHDOG', token.symbol, token.mint, { holdSec: holdSec.toFixed(1), reason: 'no buys after 10s' });
+      const event = forceClose(token, token.currentMc, log);
+      handleEvent(event).catch(() => {});
+    }
+  }
+}, 5_000);
