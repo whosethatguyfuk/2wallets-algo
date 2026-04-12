@@ -1099,32 +1099,34 @@ setInterval(() => {
   if (swept > 0) log('SWEEP', 'system', 'system', { swept });
 }, 5 * 60_000);
 
-// ── Watchdog: force-close dead/zombie trades (tick-independent) ──────────────
-setInterval(() => {
+// ── Watchdog: force-close dead/zombie trades ─────────────────────────────────
+function runWatchdog() {
   watchdogRuns++;
-  try {
-    for (const [, token] of registry) {
-      if (token.state !== STATE.HOLDING && token.state !== STATE.EXIT_UNLOCKED) continue;
-      const trade = token.activeTrade;
-      if (!trade) continue;
-      const holdSec = (Date.now() - trade.entryTs) / 1000;
+  for (const [, token] of registry) {
+    if (token.state !== STATE.HOLDING && token.state !== STATE.EXIT_UNLOCKED) continue;
+    const trade = token.activeTrade;
+    if (!trade) continue;
+    const holdSec = (Date.now() - trade.entryTs) / 1000;
 
-      if (holdSec >= 10 && (trade.buyVol || 0) < 0.01) {
-        log('WATCHDOG', token.symbol, token.mint, { holdSec: holdSec.toFixed(1), buyVol: trade.buyVol, reason: 'no buys 10s' });
-        watchdogKills++;
-        const event = forceClose(token, token.currentMc, log);
-        if (event) { openCount = Math.max(0, openCount - 1); handleEvent(event).catch(e => console.error('watchdog handle err', e)); }
-        else { console.error('WATCHDOG: forceClose returned null for', token.symbol, token.state, !!token.activeTrade); }
-        continue;
-      }
-
-      if (holdSec >= MAX_HOLD_SECS) {
-        log('WATCHDOG', token.symbol, token.mint, { holdSec: holdSec.toFixed(1), reason: 'max hold' });
-        watchdogKills++;
-        const event = forceClose(token, token.currentMc, log);
-        if (event) { openCount = Math.max(0, openCount - 1); handleEvent(event).catch(e => console.error('watchdog handle err', e)); }
-        else { console.error('WATCHDOG: forceClose returned null for', token.symbol, token.state, !!token.activeTrade); }
-      }
+    if (holdSec >= 10 && (trade.buyVol || 0) < 0.01) {
+      console.log(`🐕 WATCHDOG: ${token.symbol} held ${holdSec.toFixed(0)}s with 0 buys — killing`);
+      watchdogKills++;
+      try {
+        const event = forceClose(token, token.currentMc || 4000, log);
+        if (event) { openCount = Math.max(0, openCount - 1); handleEvent(event).catch(() => {}); }
+      } catch (e) { console.error('watchdog kill err:', e.message); }
+      continue;
     }
-  } catch (e) { console.error('WATCHDOG ERROR:', e); }
-}, 5_000);
+
+    if (holdSec >= MAX_HOLD_SECS) {
+      console.log(`🐕 WATCHDOG: ${token.symbol} hit max hold ${holdSec.toFixed(0)}s — killing`);
+      watchdogKills++;
+      try {
+        const event = forceClose(token, token.currentMc || 4000, log);
+        if (event) { openCount = Math.max(0, openCount - 1); handleEvent(event).catch(() => {}); }
+      } catch (e) { console.error('watchdog kill err:', e.message); }
+    }
+  }
+}
+setInterval(runWatchdog, 5_000);
+console.log('🐕 Watchdog started (5s interval)');
