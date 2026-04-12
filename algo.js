@@ -86,7 +86,8 @@ export function updatePrice(token, mc, ts, isBuy, sol) {
   while (token.mcHistory.length > 1 && token.mcHistory[0].ts < cutoff)
     token.mcHistory.shift();
 
-  token.currentMc = mc;
+  token.currentMc  = mc;
+  token.lastTickTs = ts;
   if (mc > token.sessionHigh) token.sessionHigh = mc;
   if (mc < token.sessionLow && mc > 0) token.sessionLow = mc;
 

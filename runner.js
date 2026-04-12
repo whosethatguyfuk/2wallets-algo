@@ -260,41 +260,53 @@ async function ensureToken(mint, symbol, name, category) {
 // tokens and seed the ones that look like they have price history.
 async function seedOldCoins() {
   try {
-    // Fetch most recently traded pump.fun tokens (not yet graduated — still on bonding curve)
-    const r = await fetch(
-      'https://frontend-api.pump.fun/coins?limit=50&offset=0&sort=last_trade_timestamp&order=DESC&includeNsfw=false',
-      { signal: AbortSignal.timeout(8_000) }
-    );
-    if (!r.ok) return;
-    const coins = await r.json();
-    if (!Array.isArray(coins)) return;
+    // Fetch established pump.fun coins sorted by market cap DESC.
+    // "Recently traded" misses established coins that pumped days ago and are now at floor.
+    // Market cap sort finds coins that actually had real demand — exactly our setup.
+    // Two pages: top 50 by MC + top 50 by last_reply (active community = more likely to pump again)
+    const urls = [
+      'https://frontend-api.pump.fun/coins?limit=50&offset=0&sort=market_cap&order=DESC&includeNsfw=false',
+      'https://frontend-api.pump.fun/coins?limit=50&offset=0&sort=last_reply&order=DESC&includeNsfw=false',
+    ];
 
     let seeded = 0;
-    for (const c of coins) {
-      const mint = c.mint;
-      if (!mint || registry.has(mint)) continue;
+    for (const url of urls) {
+      let coins;
+      try {
+        const r = await fetch(url, { signal: AbortSignal.timeout(8_000) });
+        if (!r.ok) continue;
+        coins = await r.json();
+        if (!Array.isArray(coins)) continue;
+      } catch { continue; }
 
-      // Skip if it graduated (>85 SOL) — different strategy needed
-      const vSol = (c.virtual_sol_reserves || 0) / 1e9;
-      if (vSol > 85) continue;
+      for (const c of coins) {
+        const mint = c.mint;
+        if (!mint || registry.has(mint)) continue;
 
-      // Only seed if it has meaningful trade history (not brand new)
-      const ageMs = Date.now() - (c.created_timestamp || 0);
-      if (ageMs < 5 * 60_000) continue;  // skip coins younger than 5 min
+        // Skip graduated tokens — different strategy needed
+        const vSol = (c.virtual_sol_reserves || 0) / 1e9;
+        if (vSol > 85) continue;
 
-      const category = 'old';
-      const token = await ensureToken(mint, c.symbol || mint.slice(0,6), c.name || '', category);
-      token.isSeeded = true;
-      token.vSol     = vSol;
+        // Must have reached a meaningful MC — filters out coins that never pumped
+        // usd_market_cap on pump.fun is in USD directly
+        const mcUsd = c.usd_market_cap || 0;
+        if (mcUsd < 8_000) continue;   // only seed coins that hit at least $8K MC
 
-      // Subscribe to live trades on this token
-      if (ppWs && ppWs.readyState === 1) {
-        ppWs.send(JSON.stringify({ method: 'subscribeTokenTrade', keys: [mint] }));
+        // Must be at least 10 min old — avoids competing with new-pair bot logic
+        const ageMs = Date.now() - (c.created_timestamp || 0);
+        if (ageMs < 10 * 60_000) continue;
+
+        const token = await ensureToken(mint, c.symbol || mint.slice(0,6), c.name || '', 'old');
+        token.isSeeded  = true;
+        token.vSol      = vSol;
+
+        if (ppWs && ppWs.readyState === 1) {
+          ppWs.send(JSON.stringify({ method: 'subscribeTokenTrade', keys: [mint] }));
+        }
+        seeded++;
+
+        if (seeded % 5 === 0) await new Promise(r => setTimeout(r, 500));
       }
-      seeded++;
-
-      // Throttle — don't hammer Helius with 50 simultaneous history loads
-      if (seeded % 5 === 0) await new Promise(r => setTimeout(r, 1000));
     }
 
     if (seeded > 0)
@@ -772,7 +784,7 @@ app.get('/api/stats', (_req, res) => {
       floor: Math.round(t.sessionLow < Infinity ? t.sessionLow : 0),
       histTrades: t.historyTrades,
       floorTouches: Math.max(t.historyFloorTouches || 0, t.confirmedFloorTouches || 0, t.floorTouches || 0),
-      buyers: t.uniqueBuyers?.size ?? t.resolvedBuyerCount ?? 0,
+      buyers: Math.max(t.uniqueBuyers?.size ?? 0, t.resolvedBuyerCount ?? 0),
       liveTrades: t.liveTrades || 0,
       gateFail: t.lastGateFail || null,
       category: t.category,
@@ -944,3 +956,20 @@ setTimeout(() => {
   seedOldCoins().catch(() => {});
   setInterval(() => seedOldCoins().catch(() => {}), 3 * 60_000);
 }, 5_000);
+
+// Prune dead tokens every 5 minutes
+// Remove tokens with no ticks for 15+ min that aren't in an active trade
+setInterval(() => {
+  const STALE_MS = 15 * 60_000;
+  const now = Date.now();
+  let pruned = 0;
+  for (const [mint, token] of registry) {
+    if ([STATE.HOLDING, STATE.EXIT_UNLOCKED, STATE.BUYING].includes(token.state)) continue;
+    const lastTick = token.lastTickTs || token.createdAt || 0;
+    if (now - lastTick > STALE_MS) {
+      registry.delete(mint);
+      pruned++;
+    }
+  }
+  if (pruned > 0) log('PRUNE', 'system', 'system', { pruned, remaining: registry.size });
+}, 5 * 60_000);
