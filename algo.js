@@ -19,8 +19,9 @@
 import { STATE, MIN_HOLD_SECS, REENTRY_COOLDOWN_SECS,
          ARM_TIMEOUT_SECS, TRADE_FEE_PCT, POSITION_SOL,
          MAX_TRADES_PER_TOKEN, FLOOR_TOUCH_PCT,
-         FLOOR_MIN_TOUCHES, UNLOCK_MC_USD, STOP_LOSS_PCT,
-         ENTRY_MC_MIN } from './rules.js';
+         FLOOR_ARM_ZONE_PCT, UNLOCK_MC_USD, STOP_LOSS_PCT,
+         ENTRY_MC_MIN, ROUND2_PUMP_MULT,
+         JITO_ROUND2_MIN_ATH } from './rules.js';
 
 import { runEntryGates, runExitGates, floorGate } from './gates.js';
 
@@ -37,22 +38,27 @@ export function makeToken(mint, symbol, name, category) {
     currentMc:       0,
     sessionHigh:     0,
     sessionLow:      Infinity,
-    mcHistory:       [],   // [{mc, ts, isBuy, sol}]
+    mcHistory:       [],
     vSol:            0,
+    prevMcSol:       0,
 
     // History
     historyLoaded:   false,
     historyTrades:   0,
+    liveTrades:      0,
 
     // Quality
     uniqueBuyers:    new Set(),
     maxEarlyBuySol:  0,
-    bundled:         false,
-    bundleTxCount:   0,
     mayhemDetected:  false,
 
+    // Jito bundle detection (replaces old heuristic)
+    jitoBundle:      false,
+    jitoBundleSlot:  null,
+    bundlePeakMc:    0,
+
     // Floor
-    floorMc:         null,   // confirmed floor level
+    floorMc:         null,
     floorTouches:    0,
 
     // Arm
@@ -81,7 +87,6 @@ function transition(token, newState, reason, log) {
 
 // ── Price structure update ────────────────────────────────────────
 export function updatePrice(token, mc, ts, isBuy, sol) {
-  // Rolling 5-minute history
   token.mcHistory.push({ mc, ts, isBuy, sol });
   const cutoff = ts - 300_000;
   while (token.mcHistory.length > 1 && token.mcHistory[0].ts < cutoff)
@@ -92,7 +97,6 @@ export function updatePrice(token, mc, ts, isBuy, sol) {
   if (mc > token.sessionHigh) token.sessionHigh = mc;
   if (mc < token.sessionLow && mc > 0) token.sessionLow = mc;
 
-  // Recount floor touches (price within ±5% of session low)
   if (token.sessionLow < Infinity) {
     token.floorTouches = token.mcHistory.filter(h =>
       h.mc <= token.sessionLow * (1 + FLOOR_TOUCH_PCT) &&
@@ -101,47 +105,52 @@ export function updatePrice(token, mc, ts, isBuy, sol) {
   }
 }
 
+// ── Jito bundle price reset ──────────────────────────────────────
+// Called by runner after same-slot detection confirms a Jito bundle.
+// Wipes the bundler's price data so round-2 floor detection is clean.
+export function applyJitoBundleReset(token, log) {
+  token.jitoBundle = true;
+  token.bundlePeakMc = token.sessionHigh;
+  token.sessionHigh = 0;
+  token.sessionLow = Infinity;
+  token.mcHistory = [];
+  token.floorTouches = 0;
+  token.historyFloorTouches = 0;
+  token.confirmedFloorTouches = 0;
+  log('JITO_RESET', token.symbol, token.mint, {
+    bundlePeak: Math.round(token.bundlePeakMc),
+    msg: 'price reset for round-2 organic floor detection',
+  });
+}
+
 // ── Main tick function ────────────────────────────────────────────
-// Called by the runner on every trade event for a token.
-// Returns an event object if action is needed, or null.
-//
-// Events returned:
-//   { type: 'OPEN_TRADE', token }
-//   { type: 'CLOSE_TRADE', token, trade, reason, exitMc }
-//   { type: 'ARM', token }
-//   { type: 'DISARM', token }
-//   null (no action needed)
-//
 export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
-  // Always update price structure first — no exceptions
   updatePrice(token, mc, ts, isBuy, sol);
 
   const now = Date.now();
   const nowSec = now / 1000;
 
   // ══════════════════════════════════════════════════════════════
-  // IMMUTABLE QUALITY FIREWALL — runs on EVERY tick, EVERY state
-  // If a token is poisoned (bundle/mayhem), it gets blacklisted
-  // immediately. No exceptions. No state can bypass this.
+  // FIREWALL — mayhem agent only. Jito bundles are NOT blacklisted
+  // here; they follow the round-2 path instead.
   // ══════════════════════════════════════════════════════════════
   if (token.state !== STATE.BLACKLISTED && token.state !== STATE.CLOSED) {
-    if (token.bundled) {
-      transition(token, STATE.BLACKLISTED, `FIREWALL: bundled (${token.bundleTxCount} txns)`, log);
-      return token.state === STATE.ARMED ? { type: 'DISARM', token } : null;
-    }
     if (token.mayhemDetected) {
       transition(token, STATE.BLACKLISTED, `FIREWALL: mayhem agent detected`, log);
+      return token.state === STATE.ARMED ? { type: 'DISARM', token } : null;
+    }
+    // Jito bundle with ATH too low to be worth round-2
+    if (token.jitoBundle && (token.bundlePeakMc || 0) < JITO_ROUND2_MIN_ATH && token.bundlePeakMc > 0) {
+      transition(token, STATE.BLACKLISTED, `FIREWALL: jito bundle + ATH $${Math.round(token.bundlePeakMc)} < $${JITO_ROUND2_MIN_ATH}`, log);
       return token.state === STATE.ARMED ? { type: 'DISARM', token } : null;
     }
   }
 
   // ── If in trade: manage exit ──────────────────────────────────
-  // Pure order flow — exit gates run on EVERY tick immediately. No hold timer.
   if (token.state === STATE.HOLDING || token.state === STATE.EXIT_UNLOCKED) {
     const trade   = token.activeTrade;
     if (!trade) return null;
 
-    // Update trade metrics
     trade.currentMc  = mc;
     trade.totalVol  += sol;
     trade.tickCount  = (trade.tickCount || 0) + 1;
@@ -151,20 +160,15 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
 
     const holdSec = (now - trade.entryTs) / 1000;
 
-    // Immediately move to EXIT_UNLOCKED — no hold timer in order-flow mode
     if (token.state === STATE.HOLDING) {
       transition(token, STATE.EXIT_UNLOCKED, `order-flow mode: exit gates active immediately`, log);
     }
 
-    // No-follow-through exit: catalyst was isolated, no buyers followed
-    // Tick-based: 5 ticks with 0 buys = dead entry
-    // Time-based: 10s with 0 buys = slow-ticking tokens bleed without triggering tick gate
     if (trade.buyVol === 0 && (trade.tickCount >= 5 || holdSec >= 10)) {
       log('EXIT_GATE', token.symbol, token.mint, { gate: 'NO_FOLLOWTHROUGH', ticks: trade.tickCount, holdSec: holdSec.toFixed(1) });
       return closeTrade(token, mc, now, 'NO_FOLLOWTHROUGH', log);
     }
 
-    // Run exit gates every tick — order book decides
     const exitResult = runExitGates(trade, token, isBuy, sol, holdSec, log);
     if (exitResult.exit) {
       return closeTrade(token, mc, now, exitResult.reason, log);
@@ -173,22 +177,15 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     return null;
   }
 
-  // ── BUYING state: waiting for on-chain confirmation ──────────
+  // ── BUYING state ───────────────────────────────────────────────
   if (token.state === STATE.BUYING) {
-    // Runner will call confirmBuy() when tx confirms. Nothing to do on ticks.
     return null;
   }
 
-  // ── WATCHING: waiting for history ────────────────────────────
+  // ── WATCHING: waiting for history / enough data ────────────────
   if (token.state === STATE.WATCHING) {
-    // Count ALL live ticks — even before history loads.
-    // Ticks arrive in milliseconds; history loads in 2-5 seconds.
-    // If we only count after historyLoaded, we miss the initial rush.
     token.liveTrades = (token.liveTrades || 0) + 1;
 
-    // New tokens: need 10 total (live ticks come fast, history loads in seconds)
-    // Old/seeded tokens: trade slowly — only need 3 live ticks once history is loaded
-    // They already have ATH proof and Helius history; a few live ticks confirm active market
     const totalKnown = (token.historyTrades || 0) + (token.liveTrades || 0);
     const minTrades  = token.isSeeded ? 3 : 10;
     if (token.historyLoaded && totalKnown >= minTrades) {
@@ -197,7 +194,7 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     return null;
   }
 
-  // ── INDEXED: check if floor is confirmed ──────────────────────
+  // ── INDEXED: check if floor is confirmed ───────────────────────
   if (token.state === STATE.INDEXED) {
     const fg = floorGate(token);
     if (fg.pass) {
@@ -207,95 +204,81 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     return null;
   }
 
-  // ── FLOORED: wait for price to reach arm zone ─────────────────
+  // ── FLOORED: wait for price to reach arm zone ──────────────────
   if (token.state === STATE.FLOORED) {
-    // Re-check floor in case session low updated
     const fg = floorGate(token);
     if (!fg.pass) {
-      // Floor no longer confirmed (not enough touches)
       transition(token, STATE.INDEXED, `floor lost: ${fg.reason}`, log);
       return null;
     }
     token.floorMc = token.sessionLow;
 
-    // Check if price is in arm zone (within 8% of floor).
-    // FLOOR_MIN_TOUCHES=2 already guarantees the token has bounced and returned —
-    // meaning it has had a real pump. The separate UNLOCK check is redundant
-    // and was blocking all tokens that pumped to $5-7K (most of pump.fun).
     const floor      = token.sessionLow;
     const aboveFloor = (mc - floor) / floor;
 
-    // Must have pumped at least 50% above the floor (sessionHigh > floor*1.5).
-    // A token going $4200→$4700 (+12%) is just noise — not a real pump.
-    // Real pump.fun winners pump to 2-4x before pulling back to floor.
-    // This ensures we only arm tokens that have proven real demand.
     const hasRealPump = token.sessionHigh > floor * 1.50;
 
-    if (aboveFloor <= 0.08 && mc > floor * 0.85 && hasRealPump && mc >= ENTRY_MC_MIN) {
+    // Round-2 gate for Jito bundles: must have a second organic pump
+    // sessionHigh > floor × ROUND2_PUMP_MULT proves organic demand after bundler dump
+    if (token.jitoBundle) {
+      const round2Ready = token.sessionHigh > floor * ROUND2_PUMP_MULT;
+      if (!round2Ready) return null;
+    }
+
+    if (aboveFloor <= FLOOR_ARM_ZONE_PCT && mc > floor * 0.85 && hasRealPump && mc >= ENTRY_MC_MIN) {
       token.armedAt = nowSec;
-      // Lock in floor touch evidence NOW — the 5-min mcHistory window will purge it
-      // and floorGate would re-fail in runEntryGates if we don't preserve this.
       token.confirmedFloorTouches = Math.max(
         token.historyFloorTouches || 0,
         token.floorTouches || 0
       );
-      transition(token, STATE.ARMED, `in arm zone: ${(aboveFloor*100).toFixed(1)}% above floor $${floor.toFixed(0)} (high was $${token.sessionHigh.toFixed(0)})`, log);
+      const r2 = token.jitoBundle ? ' [ROUND-2]' : '';
+      transition(token, STATE.ARMED, `in arm zone: ${(aboveFloor*100).toFixed(1)}% above floor $${floor.toFixed(0)} (high $${token.sessionHigh.toFixed(0)})${r2}`, log);
       return { type: 'ARM', token };
     }
 
     return null;
   }
 
-  // ── ARMED: waiting for catalyst ───────────────────────────────
+  // ── ARMED: waiting for catalyst ────────────────────────────────
   if (token.state === STATE.ARMED) {
-    // Arm timeout
     if (nowSec - token.armedAt > ARM_TIMEOUT_SECS) {
       transition(token, STATE.FLOORED, `arm timeout (${ARM_TIMEOUT_SECS}s)`, log);
       return { type: 'DISARM', token };
     }
 
-    // Price moved too far above floor — disarm
     const floor      = token.sessionLow;
     const aboveFloor = (mc - floor) / floor;
-    if (aboveFloor > 0.12) {
+    if (aboveFloor > FLOOR_ARM_ZONE_PCT * 1.5) {
       transition(token, STATE.FLOORED, `price moved ${(aboveFloor*100).toFixed(1)}% above floor — disarming`, log);
       return { type: 'DISARM', token };
     }
 
-    // MC dropped below tradeable range — disarm
     if (mc < ENTRY_MC_MIN) {
       transition(token, STATE.FLOORED, `MC $${mc.toFixed(0)} dropped below min $${ENTRY_MC_MIN}`, log);
       return { type: 'DISARM', token };
     }
 
-    // In real trading mode — only LaserStream can trigger a buy
-    // Runner sets isLaser=true only for LaserStream ticks
-    // This gate is enforced here structurally — not in a nested if
     if (process.env.REAL_TRADING === 'true' && !isLaser) {
-      return null;  // PumpPortal tick in real trading — never triggers buy
+      return null;
     }
 
-    // Run all 8 entry gates
     const entryResult = runEntryGates(token, isBuy, sol, mc, openCount, log);
     if (!entryResult.pass) {
-      // Store last failure reason so stats endpoint can surface it without a separate call
       token.lastGateFail = `${entryResult.gate}: ${entryResult.reason}`;
       return null;
     }
 
-    // All gates passed — open the trade
     transition(token, STATE.BUYING, 'all entry gates passed', log);
     return { type: 'OPEN_TRADE', token };
   }
 
-  // ── CLOSED / BLACKLISTED / COOLDOWN ──────────────────────────
+  // ── CLOSED / BLACKLISTED / COOLDOWN ────────────────────────────
   if (token.state === STATE.CLOSED) {
     if (nowSec < token.cooldownUntil) return null;
     if (token.tradeCount >= MAX_TRADES_PER_TOKEN) {
       transition(token, STATE.BLACKLISTED, `trade cap hit (${token.tradeCount})`, log);
       return null;
     }
-    // Cooldown expired — go back to watching floor
     transition(token, STATE.FLOORED, 'cooldown expired, re-watching floor', log);
     return null;
   }
@@ -303,10 +286,10 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
   return null;
 }
 
-// ── Confirm buy (called by runner when tx confirms on-chain) ─────
+// ── Confirm buy ──────────────────────────────────────────────────
 export function confirmBuy(token, entryMc, buySignature, tokensReceived, log) {
   if (token.state !== STATE.BUYING) {
-    log('WARN', token.symbol, token.mint, { msg: `confirmBuy called in wrong state: ${token.state}` });
+    log('WARN', token.symbol, token.mint, { msg: `confirmBuy in wrong state: ${token.state}` });
     return null;
   }
 
@@ -334,12 +317,11 @@ export function confirmBuy(token, entryMc, buySignature, tokensReceived, log) {
   return token.activeTrade;
 }
 
-// ── Close trade ───────────────────────────────────────────────────
+// ── Close trade ──────────────────────────────────────────────────
 function closeTrade(token, mc, now, reason, log) {
   const trade   = token.activeTrade;
   const holdSec = (now - trade.entryTs) / 1000;
 
-  // Cap max loss at STOP_LOSS_PCT for realism (paper trading uses actual price movement)
   let exitMc = mc;
   const worstMc = trade.entryMc * (1 - STOP_LOSS_PCT / 100);
   if (exitMc < worstMc) exitMc = worstMc;
@@ -360,7 +342,6 @@ function closeTrade(token, mc, now, reason, log) {
   token.activeTrade  = null;
   token.lastExitMc   = exitMc;
 
-  // Cooldown
   const baseCooldown = reason === 'STOP_LOSS' || reason === 'CONVICTION_FADE'
     ? 120 : REENTRY_COOLDOWN_SECS;
   token.cooldownUntil = now / 1000 + baseCooldown;
@@ -379,12 +360,12 @@ function closeTrade(token, mc, now, reason, log) {
   return { type: 'CLOSE_TRADE', token, trade: record, reason, exitMc };
 }
 
-// ── Force close (emergency stop) ─────────────────────────────────
+// ── Force close (emergency / watchdog / restart) ─────────────────
 export function forceClose(token, currentMc, log) {
   if (!token.activeTrade && token.state !== STATE.BUYING) return null;
   if (token.state === STATE.BUYING) {
     transition(token, STATE.CLOSED, 'emergency stop during buy', log);
     return { type: 'CLOSE_TRADE', token, trade: null, reason: 'EMERGENCY_STOP', exitMc: currentMc };
   }
-  return closeTrade(token, currentMc, Date.now(), 'EMERGENCY_STOP', log);
+  return closeTrade(token, currentMc || 4000, Date.now(), 'EMERGENCY_STOP', log);
 }

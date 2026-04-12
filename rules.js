@@ -8,79 +8,82 @@
 
 // ── Discovery ────────────────────────────────────────────────────
 export const UNLOCK_MC_USD        = 8_000;    // token must have crossed $8K MC to be eligible for arming
-export const ENTRY_MC_MIN         = 4_000;    // pump.fun floors are ~$4.2K — 1.5x pump + momentum are the real filters
+export const ENTRY_MC_MIN         = 4_000;    // pump.fun floors are ~$4.2K
 export const ENTRY_MC_MAX         = 50_000;   // never enter above $50K
-export const MAX_POOL_SOL         = 70;       // skip tokens with >70 SOL in bonding curve (too big)
+export const MAX_POOL_SOL         = 120;      // skip tokens with >120 SOL in bonding curve
 
-// ── Token quality (new pairs only) ───────────────────────────────
-export const QUALITY_MIN_BUYERS   = 5;        // 5+ unique buyers required (our observation window is short)
-export const QUALITY_MAX_BUY_SOL  = 1.6;     // no single buy >1.6 SOL while MC <$5K (whale filter)
-export const QUALITY_MC_THRESHOLD = 5_000;   // above this MC, large buys are fine
-export const BUNDLE_TXN_THRESHOLD = 6;       // >=6 txns in same second = bundled, skip
-export const BUNDLE_WINDOW_MS     = 1_500;   // bundle detection window
+// ── Nursery ─────────────────────────────────────────────────────
+export const NURSERY_MAX          = 600;      // max simultaneous nursery subscriptions
+export const NURSERY_PURGE_MS     = 3 * 60_000; // purge dead tokens every 3 min
+export const NURSERY_MIN_TRADERS  = 7;        // dead = < 7 unique traders after purge window
+export const COLD_PROMOTE_MC      = 5_000;    // re-promote cold-watch token if MC crosses this
 
-// ── History requirement ──────────────────────────────────────────
-// Token MUST have full history loaded before ANY gate can pass.
-// No history = WATCHING state forever. No exceptions.
-export const HISTORY_MIN_TRADES   = 10;      // minimum on-chain trades needed to establish floor
+// ── Jito bundle detection (same-slot method) ────────────────────
+export const JITO_SAME_SLOT_BUYS  = 3;        // 3+ buys in the create slot = bundle
+export const JITO_SAME_SLOT_WALLETS = 2;      // from 2+ different wallets
+export const JITO_ROUND2_MIN_ATH  = 10_000;   // bundled + ATH < $10K = blacklist (not worth round 2)
+export const ROUND2_PUMP_MULT     = 2.0;      // round-2: sessionHigh must be > floor × 2.0 to arm
 
-// ── Floor detection ──────────────────────────────────────────────
-// Floor = session low. Not any bounce. The lowest confirmed price seen.
-// We only arm when current price is within ARM_ZONE_PCT of that floor.
-export const FLOOR_ARM_ZONE_PCT   = 0.08;    // arm when within 8% above session low
-export const FLOOR_MIN_TOUCHES    = 2;       // floor must have been tested 2+ times to be confirmed
-export const FLOOR_TOUCH_PCT      = 0.05;    // ±5% = "touching the same level"
+// ── Token quality ───────────────────────────────────────────────
+export const QUALITY_MIN_BUYERS   = 5;        // 5+ unique buyers required
+export const QUALITY_MAX_BUY_SOL  = 1.6;      // no single buy >1.6 SOL while MC <$5K (whale filter)
+export const QUALITY_MC_THRESHOLD = 5_000;     // above this MC, large buys are fine
 
-// ── Arm → Catalyst ───────────────────────────────────────────────
-// Fire on the FIRST qualifying buy — do NOT wait for momentum cluster.
-// We want to be the first bid after the catalyst, not the exit liquidity.
-export const CATALYST_MIN_SOL     = 0.35;    // minimum SOL buy to trigger entry
-export const ARM_TIMEOUT_SECS     = 120;     // disarm if no catalyst in 120s
+// ── History requirement ─────────────────────────────────────────
+export const HISTORY_MIN_TRADES   = 10;       // minimum trades needed to establish floor
 
-// ── Execution ────────────────────────────────────────────────────
+// ── Floor detection ─────────────────────────────────────────────
+export const FLOOR_ARM_ZONE_PCT   = 0.15;     // arm when within 15% above session low
+export const FLOOR_MIN_TOUCHES    = 2;        // floor must have been tested 2+ times
+export const FLOOR_TOUCH_PCT      = 0.08;     // ±8% = "touching the same level"
+
+// ── Arm → Catalyst ──────────────────────────────────────────────
+export const CATALYST_MIN_SOL     = 0.20;     // minimum SOL buy to trigger entry
+export const ARM_TIMEOUT_SECS     = 300;      // disarm if no catalyst in 5 min
+
+// ── Execution ───────────────────────────────────────────────────
 export const POSITION_SOL         = Number(process.env.POSITION_SOL) || 0.2;
-export const MAX_CONCURRENT       = 3;       // max simultaneous open positions
+export const MAX_CONCURRENT       = 3;
 
-// ── Hold ─────────────────────────────────────────────────────────
-// Pure order-flow strategy — NO time-based holds.
-// Our bid tests the price level. The order book tells us if it holds.
-// Sells on top = level rejected = exit immediately. No hold timers.
-export const MIN_HOLD_SECS        = 0;       // no minimum hold — order flow decides instantly
+// ── Hold ────────────────────────────────────────────────────────
+export const MIN_HOLD_SECS        = 0;        // no minimum hold — order flow decides
 
-// ── Exit thresholds ──────────────────────────────────────────────
-// PRIMARY exit: sell appears on top of our position = level is weak = out NOW
-export const SELLER_EXIT_SOL      = 0.15;    // sell ≥ 0.15 SOL on top of us = exit immediately
-// SAFETY NET: price bleeds without big sells (should be rare at confirmed floor)
-export const STOP_LOSS_PCT        = 4;       // hard stop -4% (floor test should bounce, not bleed)
-// PROFIT: trail very early, let winners run, seller exit handles the rest
-export const TAKE_PROFIT_PCT      = 20;      // flat TP fallback only
-export const TRAIL_ACTIVATE_PCT   = 3;       // trail from +3% gain
-export const TRAIL_KEEP_PCT       = 0.60;    // keep 60% of peak gain
-export const MAX_HOLD_SECS        = 180;     // 3 min hard cap — zombie prevention only
+// ── Exit thresholds ─────────────────────────────────────────────
+export const SELLER_EXIT_SOL      = 0.15;     // sell ≥ 0.15 SOL on top = exit
+export const STOP_LOSS_PCT        = 4;        // hard stop -4%
+export const TAKE_PROFIT_PCT      = 20;       // flat TP fallback
+export const TRAIL_ACTIVATE_PCT   = 3;        // trail from +3% gain
+export const TRAIL_KEEP_PCT       = 0.60;     // keep 60% of peak gain
+export const MAX_HOLD_SECS        = 180;      // 3 min hard cap
 
-// ── Re-entry rules ───────────────────────────────────────────────
-// NEVER re-enter a token above its last exit price.
-// If price is higher than where we sold, the move already happened — we missed it.
-export const REENTRY_MAX_ABOVE_EXIT = 0.02;  // can re-enter up to 2% above last exit (slippage tolerance)
-export const REENTRY_COOLDOWN_SECS  = 60;   // minimum seconds before any re-entry
-export const MAX_TRADES_PER_TOKEN   = 3;    // after 3 trades on same token, blacklist for session
+// ── Re-entry rules ──────────────────────────────────────────────
+export const REENTRY_MAX_ABOVE_EXIT = 0.02;
+export const REENTRY_COOLDOWN_SECS  = 60;
+export const MAX_TRADES_PER_TOKEN   = 3;
 
-// ── Mayhem / bundle blacklist ─────────────────────────────────────
+// ── Mayhem blacklist ────────────────────────────────────────────
 export const MAYHEM_AGENT_WALLET  = "BwWK17cbHxwWBKZkUYvzxLcNQ1YVyaFezduWbtm2de6s";
 
-// ── Fees ─────────────────────────────────────────────────────────
-export const TRADE_FEE_PCT        = 0.01;   // ~1% round trip
+// ── MC direction correction ─────────────────────────────────────
+export const MC_DIRECTION_MIN_DELTA = 0.005;  // only override PP txType if MC moved >0.5%
 
-// ── Token states (the state machine) ─────────────────────────────
-// Tokens move through these states in ORDER. No skipping.
+// ── Persistence ─────────────────────────────────────────────────
+export const SNAPSHOT_INTERVAL_MS = 60_000;   // save state every 60s
+export const RESUB_BATCH_SIZE     = 50;       // re-subscribe in batches on restart
+export const RESUB_BATCH_DELAY_MS = 500;      // delay between batches
+
+// ── Fees ────────────────────────────────────────────────────────
+export const TRADE_FEE_PCT        = 0.01;     // ~1% round trip
+
+// ── Token states ────────────────────────────────────────────────
 export const STATE = Object.freeze({
-  WATCHING:        'WATCHING',        // discovered, waiting for history
-  INDEXED:         'INDEXED',         // history loaded, gates can now run
-  FLOORED:         'FLOORED',         // floor confirmed, waiting for price to reach floor zone
-  ARMED:           'ARMED',           // price is at floor zone, laser stream active, waiting for catalyst
-  BUYING:          'BUYING',          // buy tx submitted, waiting for confirmation
-  HOLDING:         'HOLDING',         // in trade, exit locked until MIN_HOLD_SECS
-  EXIT_UNLOCKED:   'EXIT_UNLOCKED',   // hold timer expired, exit logic active
-  CLOSED:          'CLOSED',          // trade closed, in cooldown
-  BLACKLISTED:     'BLACKLISTED',     // too many trades, skip for session
+  WATCHING:        'WATCHING',
+  INDEXED:         'INDEXED',
+  FLOORED:         'FLOORED',
+  ARMED:           'ARMED',
+  BUYING:          'BUYING',
+  HOLDING:         'HOLDING',
+  EXIT_UNLOCKED:   'EXIT_UNLOCKED',
+  CLOSED:          'CLOSED',
+  BLACKLISTED:     'BLACKLISTED',
 });
