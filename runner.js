@@ -622,8 +622,12 @@ app.get('/', (_req, res) => {
     .trade-card.win  { border-left: 3px solid #4fc; }
     .trade-card.loss { border-left: 3px solid #f55; }
     .trade-card.open { border-left: 3px solid #fc4; }
-    .token-row { padding: 6px 8px; border-radius: 4px; margin-bottom: 4px; background: #111; cursor: pointer; display: flex; gap: 8px; align-items: center; font-size: 12px; }
+    .token-row { padding: 6px 8px; border-radius: 4px; margin-bottom: 4px; background: #111; cursor: pointer; display: flex; gap: 8px; align-items: center; font-size: 12px; position: relative; }
     .token-row:hover { background: #181818; }
+    .token-row:hover .copy-hint { opacity: 1; }
+    .copy-hint { opacity: 0; font-size: 9px; color: #444; transition: opacity 0.15s; }
+    .token-row.copied { background: #0d1f0d !important; }
+    .token-row.copied .copy-hint { opacity: 1; color: #4fc; }
     .state-badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: #222; }
     .state-ARMED       { background: #1a2a1a; color: #4fc; }
     .state-HOLDING     { background: #2a2a10; color: #fc4; }
@@ -670,6 +674,17 @@ app.get('/', (_req, res) => {
     async function halt()   { await fetch('/api/stop',   {method:'POST'}); }
     async function resume() { await fetch('/api/resume', {method:'POST'}); }
 
+    function copyCA(mint, el) {
+      navigator.clipboard.writeText(mint).then(() => {
+        el.classList.add('copied');
+        el.querySelector('.copy-hint').textContent = '✓ copied';
+        setTimeout(() => {
+          el.classList.remove('copied');
+          el.querySelector('.copy-hint').textContent = 'copy CA';
+        }, 1500);
+      });
+    }
+
     async function refresh() {
       const [s, ct] = await Promise.all([fetch('/api/stats'), fetch('/api/closed')]);
       const stats  = await s.json();
@@ -687,10 +702,11 @@ app.get('/', (_req, res) => {
       // Token list
       const tl = document.getElementById('token-list');
       tl.innerHTML = (stats.activeTokens || []).map(t => \`
-        <div class="token-row">
+        <div class="token-row" onclick="copyCA('\${t.mint}', this)" title="\${t.mint}">
           <span>\${t.symbol}</span>
           <span class="state-badge state-\${t.state}">\${t.state}</span>
           <span style="color:#666;margin-left:auto">\$\${(t.mc||0).toLocaleString()}</span>
+          <span class="copy-hint">copy CA</span>
         </div>\`).join('');
 
       // Closed trades
