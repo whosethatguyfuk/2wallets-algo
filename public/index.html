@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2Wallets Algo v2.0</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0a0f;color:#e0e0e0;font-family:'SF Mono','Fira Code',monospace;font-size:13px}
+  a{color:#7dd3fc;text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .header{padding:16px 24px;border-bottom:1px solid #1e1e2e;display:flex;justify-content:space-between;align-items:center}
+  .header h1{font-size:18px;font-weight:600;color:#f0f0f0}
+  .header .version{color:#888;font-size:12px}
+  .header .status{display:flex;gap:12px;align-items:center}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+  .dot.on{background:#4ade80}.dot.off{background:#ef4444}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;padding:16px 24px}
+  .card{background:#12121a;border:1px solid #1e1e2e;border-radius:8px;padding:14px 16px}
+  .card .label{color:#666;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
+  .card .value{font-size:22px;font-weight:700;margin-top:4px;color:#f0f0f0}
+  .card .value.green{color:#4ade80}.card .value.red{color:#f87171}
+  .card .value.blue{color:#60a5fa}.card .value.yellow{color:#fbbf24}
+
+  .tabs{display:flex;gap:0;padding:0 24px;border-bottom:1px solid #1e1e2e;margin-top:8px}
+  .tab{padding:10px 20px;cursor:pointer;color:#666;border-bottom:2px solid transparent;transition:all .15s}
+  .tab:hover{color:#aaa}.tab.active{color:#7dd3fc;border-bottom-color:#7dd3fc}
+
+  .panel{padding:16px 24px;display:none}.panel.active{display:block}
+
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;color:#555;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;padding:8px 10px;border-bottom:1px solid #1e1e2e}
+  td{padding:7px 10px;border-bottom:1px solid #0e0e16;white-space:nowrap}
+  tr:hover{background:#15151f}
+  .mint{cursor:pointer;color:#7dd3fc;font-size:12px}
+  .mint:hover{text-decoration:underline}
+  .badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600}
+  .badge.armed{background:#422006;color:#fbbf24}
+  .badge.floored{background:#1a2332;color:#60a5fa}
+  .badge.indexed{background:#1a1a2e;color:#a78bfa}
+  .badge.watching{background:#111;color:#666}
+  .badge.holding{background:#052e16;color:#4ade80}
+  .badge.buying{background:#052e16;color:#4ade80}
+  .badge.closed{background:#1a1a1a;color:#888}
+  .badge.blacklisted{background:#2a0a0a;color:#f87171}
+  .badge.jito{background:#3b0764;color:#c084fc;margin-left:4px}
+  .badge.r2{background:#4a1d96;color:#a78bfa;margin-left:4px}
+
+  .pnl-pos{color:#4ade80;font-weight:600}.pnl-neg{color:#f87171;font-weight:600}
+  .stale{color:#444}
+
+  .sse-log{max-height:300px;overflow-y:auto;background:#08080c;border:1px solid #1e1e2e;border-radius:8px;padding:12px;font-size:12px;line-height:1.6}
+  .sse-line{opacity:0;animation:fadeIn .3s forwards}
+  @keyframes fadeIn{to{opacity:1}}
+  .sse-buy{color:#4ade80}.sse-sell{color:#f87171}.sse-arm{color:#fbbf24}.sse-disarm{color:#888}
+
+  .empty{color:#444;padding:30px;text-align:center}
+  .refresh-note{color:#444;font-size:11px;padding:4px 24px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>2Wallets Algo</h1>
+    <span class="version" id="ver">v2.0.0</span>
+  </div>
+  <div class="status">
+    <span><span class="dot" id="ppDot"></span>PumpPortal</span>
+    <span id="modeLabel"></span>
+  </div>
+</div>
+
+<div class="grid" id="statsGrid"></div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="registry">Registry</div>
+  <div class="tab" data-tab="nursery">Nursery</div>
+  <div class="tab" data-tab="trades">Closed Trades</div>
+  <div class="tab" data-tab="live">Live Feed</div>
+</div>
+
+<div class="panel active" id="panel-registry"></div>
+<div class="panel" id="panel-nursery"></div>
+<div class="panel" id="panel-trades"></div>
+<div class="panel" id="panel-live"><div class="sse-log" id="sseLog"></div></div>
+
+<div class="refresh-note">Auto-refreshes every 5s</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+function copyMint(mint) {
+  navigator.clipboard.writeText(mint).then(() => {
+    const el = document.querySelector(`[data-mint="${mint}"]`);
+    if (el) { const orig = el.textContent; el.textContent = 'copied!'; setTimeout(() => el.textContent = orig, 800); }
+  });
+}
+
+function fmtMc(n) { return n >= 1000 ? (n/1000).toFixed(1)+'K' : Math.round(n); }
+function stateBadge(s, jito) {
+  const cls = s.toLowerCase().replace('exit_unlocked','holding');
+  let b = `<span class="badge ${cls}">${s}</span>`;
+  if (jito) b += `<span class="badge jito">JITO</span>`;
+  return b;
+}
+
+// Stats
+async function loadStats() {
+  try {
+    const d = await (await fetch('/api/stats')).json();
+    $('#ver').textContent = d.version || '?';
+    $('#ppDot').className = 'dot ' + (d.ppConnected ? 'on' : 'off');
+    $('#modeLabel').innerHTML = d.realTrading
+      ? '<span style="color:#f87171;font-weight:700">REAL</span>'
+      : '<span style="color:#4ade80">PAPER</span>';
+
+    const pnlClass = d.netPnlSol >= 0 ? 'green' : 'red';
+    const wr = d.trades > 0 ? (d.wins/d.trades*100).toFixed(0)+'%' : '—';
+    const cards = [
+      { label:'Net PnL', value: (d.netPnlSol >= 0?'+':'')+d.netPnlSol.toFixed(4)+' SOL', cls: pnlClass },
+      { label:'Trades', value: d.trades, cls:'' },
+      { label:'Win Rate', value: wr, cls: d.winRate >= 50 ? 'green' : d.trades > 0 ? 'red' : '' },
+      { label:'Open', value: d.open, cls: d.open > 0 ? 'yellow' : '' },
+      { label:'Armed', value: d.armed, cls: d.armed > 0 ? 'yellow' : '' },
+      { label:'Registry', value: d.tokens, cls: 'blue' },
+      { label:'Nursery', value: d.nurserySize, cls:'' },
+      { label:'Cold Watch', value: d.coldWatchSize ?? 0, cls:'' },
+      { label:'Born Total', value: d.nurseryTotal ?? 0, cls:'' },
+      { label:'Watchdog', value: `${d.watchdogKills}/${d.watchdogRuns}`, cls:'' },
+    ];
+    $('#statsGrid').innerHTML = cards.map(c =>
+      `<div class="card"><div class="label">${c.label}</div><div class="value ${c.cls}">${c.value}</div></div>`
+    ).join('');
+  } catch(e) { console.error('stats err', e); }
+}
+
+// Registry
+async function loadRegistry() {
+  try {
+    const list = await (await fetch('/api/registry')).json();
+    if (!list.length) { $('#panel-registry').innerHTML = '<div class="empty">No tokens in registry yet</div>'; return; }
+    let html = `<table><thead><tr>
+      <th>Token</th><th>CA</th><th>State</th><th>MC</th><th>ATH</th><th>Floor</th>
+      <th>Buyers</th><th>Hist</th><th>Live</th><th>Last Tick</th>
+    </tr></thead><tbody>`;
+    for (const t of list) {
+      html += `<tr>
+        <td><b>${esc(t.symbol)}</b></td>
+        <td><span class="mint" data-mint="${t.mint}" onclick="copyMint('${t.mint}')">${t.mint.slice(0,6)}…${t.mint.slice(-4)}</span></td>
+        <td>${stateBadge(t.state, t.jitoBundle)}</td>
+        <td>$${fmtMc(t.mc)}</td>
+        <td>$${fmtMc(t.ath)}</td>
+        <td>${t.floor ? '$'+fmtMc(t.floor) : '—'}</td>
+        <td>${t.buyers}</td>
+        <td>${t.histLoaded ? t.histTrades : '<span class="stale">…</span>'}</td>
+        <td>${t.liveTrades}</td>
+        <td class="stale">${t.lastTick || '—'}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    $('#panel-registry').innerHTML = html;
+  } catch(e) { console.error('registry err', e); }
+}
+
+// Nursery
+async function loadNursery() {
+  try {
+    const list = await (await fetch('/api/nursery')).json();
+    if (!list.length) { $('#panel-nursery').innerHTML = '<div class="empty">Nursery is empty</div>'; return; }
+    let html = `<table><thead><tr>
+      <th>Token</th><th>CA</th><th>MC</th><th>ATH</th><th>Trades</th><th>Traders</th><th>Age</th>
+    </tr></thead><tbody>`;
+    for (const n of list) {
+      html += `<tr>
+        <td><b>${esc(n.symbol)}</b></td>
+        <td><span class="mint" data-mint="${n.mint}" onclick="copyMint('${n.mint}')">${n.mint.slice(0,6)}…${n.mint.slice(-4)}</span></td>
+        <td>$${fmtMc(n.mc)}</td>
+        <td>$${fmtMc(n.ath)}</td>
+        <td>${n.trades}</td>
+        <td>${n.traders}</td>
+        <td>${n.ageSec}s</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    $('#panel-nursery').innerHTML = html;
+  } catch(e) { console.error('nursery err', e); }
+}
+
+// Closed trades
+async function loadTrades() {
+  try {
+    const list = await (await fetch('/api/closed')).json();
+    if (!list.length) { $('#panel-trades').innerHTML = '<div class="empty">No trades closed yet</div>'; return; }
+    let html = `<table><thead><tr>
+      <th>Token</th><th>CA</th><th>Entry</th><th>Exit</th><th>PnL</th><th>Hold</th><th>Reason</th>
+    </tr></thead><tbody>`;
+    for (const t of list) {
+      const cls = t.pnlPct >= 0 ? 'pnl-pos' : 'pnl-neg';
+      html += `<tr>
+        <td><b>${esc(t.symbol)}</b>${t.jito ? '<span class="badge jito">JITO</span>' : ''}</td>
+        <td><span class="mint" data-mint="${t.mint}" onclick="copyMint('${t.mint}')">${t.mint.slice(0,6)}…${t.mint.slice(-4)}</span></td>
+        <td>$${fmtMc(t.entryMc)}</td>
+        <td>$${fmtMc(t.exitMc)}</td>
+        <td class="${cls}">${t.pnlPct >= 0 ? '+' : ''}${t.pnlPct}%</td>
+        <td>${t.holdSec}s</td>
+        <td>${t.reason}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    $('#panel-trades').innerHTML = html;
+  } catch(e) { console.error('trades err', e); }
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// Tabs
+$$('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    $$('.tab').forEach(t => t.classList.remove('active'));
+    $$('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    $(`#panel-${tab.dataset.tab}`).classList.add('active');
+  });
+});
+
+// SSE live feed
+const sse = new EventSource('/api/sse');
+const sseLog = $('#sseLog');
+sse.onmessage = (e) => {
+  try {
+    const d = JSON.parse(e.data);
+    let cls = '', txt = '';
+    if (d.type === 'buy')    { cls = 'sse-buy';    txt = `BUY  ${d.symbol} at $${fmtMc(d.mc)}${d.jito?' [JITO R2]':''}`; }
+    if (d.type === 'sell')   { cls = 'sse-sell';   txt = `SELL ${d.symbol} → ${d.pnl}% (${d.reason})`; }
+    if (d.type === 'arm')    { cls = 'sse-arm';    txt = `ARM  ${d.symbol} at $${fmtMc(d.mc)}`; }
+    if (d.type === 'disarm') { cls = 'sse-disarm'; txt = `DISARM ${d.symbol}`; }
+    if (txt) {
+      const ts = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = `sse-line ${cls}`;
+      line.textContent = `[${ts}] ${txt}`;
+      sseLog.prepend(line);
+      while (sseLog.children.length > 200) sseLog.lastChild.remove();
+    }
+  } catch {}
+};
+
+// Auto refresh
+function refresh() {
+  loadStats();
+  const activeTab = $('.tab.active')?.dataset.tab;
+  if (activeTab === 'registry') loadRegistry();
+  if (activeTab === 'nursery') loadNursery();
+  if (activeTab === 'trades') loadTrades();
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
