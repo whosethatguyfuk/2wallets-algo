@@ -126,6 +126,8 @@ async function loadHistory(token) {
     if (!Array.isArray(txs)) throw new Error('bad response');
 
     let count = 0;
+    const historyBuyers = new Set();
+
     for (const tx of txs) {
       const tt = tx.tokenTransfers || [];
       const nt = tx.nativeTransfers || [];
@@ -141,18 +143,41 @@ async function loadHistory(token) {
           const isBuy = (tt.find(t => t.mint === token.mint)?.toUserAccount) ? true : false;
           updatePrice(token, mc, tx.timestamp * 1000 || Date.now(), isBuy, solAmt);
 
-          // Quality checks on historical data
-          if (!isBuy && mc < QUALITY_MC_THRESHOLD && solAmt > QUALITY_MAX_BUY_SOL) {
-            token.maxEarlyBuySol = Math.max(token.maxEarlyBuySol, solAmt);
+          if (isBuy) {
+            if (tx.feePayer) historyBuyers.add(tx.feePayer);
+            // Whale check during early price phase
+            if (mc < QUALITY_MC_THRESHOLD && solAmt > QUALITY_MAX_BUY_SOL) {
+              token.maxEarlyBuySol = Math.max(token.maxEarlyBuySol, solAmt);
+            }
           }
           count++;
         }
       }
     }
 
+    // Freeze floor touches BEFORE mcHistory gets pruned by live ticks.
+    // floorGate uses this to avoid losing historical evidence.
+    if (token.sessionLow < Infinity) {
+      const floor = token.sessionLow;
+      token.historyFloorTouches = token.mcHistory.filter(h =>
+        h.mc <= floor * 1.05 && h.mc >= floor * 0.95
+      ).length;
+    }
+
+    // Persist buyer count before Set might be cleared
+    token.resolvedBuyerCount = Math.max(
+      historyBuyers.size,
+      token.uniqueBuyers?.size || 0
+    );
+
     token.historyLoaded = true;
     token.historyTrades = count;
-    log('HISTORY_LOADED', token.symbol, token.mint, { trades: count, sessionLow: Math.round(token.sessionLow || 0) });
+    log('HISTORY_LOADED', token.symbol, token.mint, {
+      trades:       count,
+      sessionLow:   Math.round(token.sessionLow || 0),
+      floorTouches: token.historyFloorTouches,
+      buyers:       token.resolvedBuyerCount,
+    });
   } catch (e) {
     log('HISTORY_FAIL', token.symbol, token.mint, { error: e.message });
     // Do NOT set historyLoaded = true on failure. Token stays in WATCHING. No leaks.
@@ -369,15 +394,16 @@ function connectPP() {
 
     if (mc <= 0) return;
 
-    // Quality tracking (new pairs only, pre-$5K)
-    if (token.category === 'new' && isBuy && mc < QUALITY_MC_THRESHOLD) {
-      token.uniqueBuyers.add(msg.traderPublicKey);
-      if (sol > QUALITY_MAX_BUY_SOL) {
+    // Always update pool size on every tick — quality gate needs this
+    token.vSol = vSol;
+
+    // Quality tracking (new pairs only)
+    if (token.category === 'new' && isBuy && msg.traderPublicKey) {
+      if (token.uniqueBuyers) token.uniqueBuyers.add(msg.traderPublicKey);
+      if (mc < QUALITY_MC_THRESHOLD && sol > QUALITY_MAX_BUY_SOL) {
         token.maxEarlyBuySol = Math.max(token.maxEarlyBuySol, sol);
         log('QUALITY_FAIL', token.symbol, mint, { sol: sol.toFixed(2), mc: Math.round(mc) });
       }
-    } else if (token.category === 'new' && isBuy) {
-      token.uniqueBuyers.add(msg.traderPublicKey);
     }
 
     // Mayhem detection

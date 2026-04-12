@@ -41,39 +41,64 @@ export function historyGate(token) {
 }
 
 // ── GATE 2: Quality Gate ─────────────────────────────────────────
-// Filters out bundles, whales, low-holder tokens.
+// New pairs: checks bundle, whales, buyer count.
+// Old/migrated pairs: skip buyer/bundle (that data doesn't exist) — only check pool size.
 export function qualityGate(token) {
-  if (token.bundled)
-    return fail(`bundled at launch (${token.bundleTxCount} txns in 1.5s)`);
+  // Mayhem check applies to all categories
   if (token.mayhemDetected)
     return fail(`mayhem agent detected`);
-  if (token.uniqueBuyers < QUALITY_MIN_BUYERS)
-    return fail(`only ${token.uniqueBuyers} unique buyers, need ${QUALITY_MIN_BUYERS}`);
-  if (token.maxEarlyBuySol > QUALITY_MAX_BUY_SOL)
-    return fail(`whale buy detected: ${token.maxEarlyBuySol.toFixed(2)} SOL while MC <$${QUALITY_MC_THRESHOLD}`);
+
+  // Pool size check applies to all categories — vSol must be tracked by runner
   if (token.vSol > MAX_POOL_SOL)
-    return fail(`pool too large: ${token.vSol.toFixed(0)} SOL (max ${MAX_POOL_SOL})`);
-  return pass(`quality ok (${token.uniqueBuyers} buyers, no whales, no bundle)`);
+    return fail(`pool too large: ${token.vSol.toFixed(1)} SOL (max ${MAX_POOL_SOL})`);
+
+  // New pairs only: bundle + whale + buyer count
+  if (token.category === 'new') {
+    if (token.bundled)
+      return fail(`bundled at launch (${token.bundleTxCount} txns in 1.5s)`);
+
+    if (token.maxEarlyBuySol > QUALITY_MAX_BUY_SOL)
+      return fail(`whale buy: ${token.maxEarlyBuySol.toFixed(2)} SOL while MC <$${QUALITY_MC_THRESHOLD}`);
+
+    // uniqueBuyers is a Set — use .size, handle null (freed after history loads)
+    const buyerCount = token.uniqueBuyers?.size ?? token.resolvedBuyerCount ?? 0;
+    if (buyerCount < QUALITY_MIN_BUYERS)
+      return fail(`only ${buyerCount} unique buyers, need ${QUALITY_MIN_BUYERS}`);
+
+    return pass(`quality ok (${buyerCount} buyers, no whale, no bundle)`);
+  }
+
+  // Old / migrated pairs pass quality if pool is within limit
+  return pass(`quality ok (${token.category} pair — buyer/bundle check skipped)`);
 }
 
 // ── GATE 3: Floor Gate ───────────────────────────────────────────
 // The REAL floor is the session low — the lowest price the token has ever traded at.
 // It must have been tested at least FLOOR_MIN_TOUCHES times.
-// We only care about the absolute lowest confirmed level.
+//
+// IMPORTANT: mcHistory is a 5-min rolling window. Historical ticks get pruned on the
+// first live tick. We therefore store historyFloorTouches separately during history
+// loading so this gate doesn't lose its evidence on the first live tick.
 export function floorGate(token) {
   const floor = token.sessionLow;
   if (!floor || floor <= 0 || floor === Infinity)
     return fail(`no session low established yet`);
 
-  // Count how many times price has touched near the session low
-  const touches = (token.mcHistory || []).filter(h =>
+  // Live touches from rolling window
+  const liveTouches = (token.mcHistory || []).filter(h =>
     h.mc <= floor * (1 + FLOOR_TOUCH_PCT) && h.mc >= floor * (1 - FLOOR_TOUCH_PCT)
   ).length;
 
-  if (touches < FLOOR_MIN_TOUCHES)
-    return fail(`floor at $${floor.toFixed(0)} only touched ${touches}x, need ${FLOOR_MIN_TOUCHES}`);
+  // Historical touches survive the rolling window purge (set during history loading)
+  const histTouches = token.historyFloorTouches || 0;
 
-  return pass(`floor confirmed at $${floor.toFixed(0)} (${touches} touches)`);
+  // Use whichever is higher — historical evidence is just as valid
+  const touches = Math.max(liveTouches, histTouches);
+
+  if (touches < FLOOR_MIN_TOUCHES)
+    return fail(`floor at $${floor.toFixed(0)} only touched ${touches}x, need ${FLOOR_MIN_TOUCHES} (live:${liveTouches} hist:${histTouches})`);
+
+  return pass(`floor confirmed at $${floor.toFixed(0)} (${touches} touches — live:${liveTouches} hist:${histTouches})`);
 }
 
 // ── GATE 4: Arm Zone Gate ────────────────────────────────────────
@@ -152,15 +177,20 @@ export function catalystGate(token, isBuy, solAmount, currentMc) {
   if (solAmount < CATALYST_MIN_SOL)
     return fail(`catalyst too small: ${solAmount.toFixed(3)} SOL < ${CATALYST_MIN_SOL} SOL`);
 
-  // Check if this buy spiked price too hard (we'd be entering at local high)
-  const hist    = token.mcHistory || [];
-  const preCat  = hist.length >= 2 ? hist[hist.length - 2]?.mc : null;
-  if (preCat && preCat > 0) {
-    const spike = (currentMc - preCat) / preCat;
+  // Check if this buy spiked price too hard (we'd be entering at local high).
+  // Use the median price of the last 10s of ticks as the baseline, not just 1 tick.
+  // This prevents a single anomalous tick from hiding a real spike.
+  const hist     = token.mcHistory || [];
+  const now      = Date.now();
+  const baseline = hist.filter(h => h.ts >= now - 10_000 && h.ts < now - 500);
+  if (baseline.length >= 2) {
+    const sorted  = baseline.map(h => h.mc).sort((a, b) => a - b);
+    const median  = sorted[Math.floor(sorted.length / 2)];
+    const spike   = (currentMc - median) / median;
     if (spike > CATALYST_MAX_SPIKE)
-      return fail(`catalyst spiked price +${(spike*100).toFixed(1)}% — entering at local high (max ${(CATALYST_MAX_SPIKE*100).toFixed(0)}%)`);
+      return fail(`catalyst spiked price +${(spike*100).toFixed(1)}% vs 10s median $${median.toFixed(0)} — at local high`);
     if (spike < -0.03)
-      return fail(`tick is bearish: price dropped ${(spike*100).toFixed(1)}% on supposed catalyst`);
+      return fail(`bearish tick: price dropped ${(spike*100).toFixed(1)}% vs 10s median`);
   }
 
   return pass(`catalyst confirmed: ${solAmount.toFixed(3)} SOL buy at $${currentMc.toFixed(0)}`);
