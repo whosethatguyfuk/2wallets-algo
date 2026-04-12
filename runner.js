@@ -820,8 +820,53 @@ app.get('/api/debug', (_req, res) => {
 
 // PP message diagnostic — helps trace why mc=0
 app.get('/api/diag', (_req, res) => {
-  // Expose ppMsgLog from closure — we need a workaround since it's scoped inside connectPP
   res.json({ note: 'use /api/stats byState for state info', ppMsgLog: global._ppMsgLog || [] });
+});
+
+app.get('/api/gates', (_req, res) => {
+  // Show gate results for ARMED and FLOORED tokens — the exact reason nothing fires
+  const { runEntryGates, floorGate } = require('./gates.js');
+  const openCount = [...registry.values()].filter(t => t.activeTrade).length;
+  const results = [];
+
+  for (const token of registry.values()) {
+    if (token.state === 'ARMED' || token.state === 'FLOORED') {
+      const floor = token.sessionLow;
+      const aboveFloor = floor > 0 ? ((token.currentMc - floor) / floor * 100).toFixed(1) : 'N/A';
+      const hasRealPump = token.sessionHigh > floor * 1.10;
+
+      const entry = {
+        symbol:    token.symbol,
+        state:     token.state,
+        mc:        Math.round(token.currentMc),
+        high:      Math.round(token.sessionHigh),
+        floor:     Math.round(floor),
+        aboveFloor: aboveFloor + '%',
+        hasRealPump,
+        buyers:    token.uniqueBuyers?.size ?? token.resolvedBuyerCount ?? 0,
+        hist:      token.historyTrades,
+        live:      token.liveTrades || 0,
+        touches:   token.floorTouches,
+        histTouches: token.historyFloorTouches || 0,
+        vSol:      token.vSol,
+      };
+
+      if (token.state === 'ARMED') {
+        // Simulate a 0.15 SOL buy catalyst at current price
+        const gates = runEntryGates(token, true, 0.15, token.currentMc, openCount, () => {});
+        entry.gates = gates;
+      }
+
+      if (token.state === 'FLOORED') {
+        const fg = floorGate(token);
+        entry.floorGate = fg;
+      }
+
+      results.push(entry);
+    }
+  }
+
+  res.json({ openCount, count: results.length, tokens: results.slice(0, 15) });
 });
 
 app.get('/api/stream', (req, res) => {

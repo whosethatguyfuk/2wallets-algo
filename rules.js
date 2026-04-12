@@ -32,7 +32,7 @@ export const FLOOR_MIN_TOUCHES    = 2;       // floor must have been tested 2+ t
 export const FLOOR_TOUCH_PCT      = 0.05;    // ±5% = "touching the same level"
 
 // ── Arm → Catalyst ───────────────────────────────────────────────
-export const CATALYST_MIN_SOL     = 0.30;    // minimum SOL buy to confirm catalyst
+export const CATALYST_MIN_SOL     = 0.10;    // minimum SOL buy to confirm catalyst (pump.fun typical range 0.1-0.5)
 export const CATALYST_MAX_SPIKE   = 0.05;    // if catalyst spiked MC >5% from pre-catalyst, skip (entering high)
 export const ARM_TIMEOUT_SECS     = 120;     // disarm if no catalyst in 120s
 

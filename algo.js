@@ -189,16 +189,19 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     token.floorMc = token.sessionLow;
 
     // Check if price is in arm zone (within 8% of floor).
-    // ALSO require: token must have previously pumped above UNLOCK_MC_USD ($8K).
-    // New tokens at launch price ($4K) should NEVER arm — they haven't had a real
-    // pump yet, so any "floor" they have is just the launch price.
+    // FLOOR_MIN_TOUCHES=2 already guarantees the token has bounced and returned —
+    // meaning it has had a real pump. The separate UNLOCK check is redundant
+    // and was blocking all tokens that pumped to $5-7K (most of pump.fun).
     const floor      = token.sessionLow;
     const aboveFloor = (mc - floor) / floor;
-    const hasUnlocked = token.sessionHigh >= UNLOCK_MC_USD;
 
-    if (aboveFloor <= 0.08 && mc > floor * 0.85 && hasUnlocked) {
+    // Must have pumped at least once above its floor + 10% (i.e. sessionHigh > floor*1.1)
+    // This is weaker than UNLOCK_MC_USD but still filters pure launch-price floors.
+    const hasRealPump = token.sessionHigh > floor * 1.10;
+
+    if (aboveFloor <= 0.08 && mc > floor * 0.85 && hasRealPump) {
       token.armedAt = nowSec;
-      transition(token, STATE.ARMED, `in arm zone: ${(aboveFloor*100).toFixed(1)}% above floor $${floor.toFixed(0)}`, log);
+      transition(token, STATE.ARMED, `in arm zone: ${(aboveFloor*100).toFixed(1)}% above floor $${floor.toFixed(0)} (high was $${token.sessionHigh.toFixed(0)})`, log);
       return { type: 'ARM', token };
     }
 
