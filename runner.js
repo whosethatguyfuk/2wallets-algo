@@ -195,6 +195,56 @@ async function ensureToken(mint, symbol, name, category) {
   return token;
 }
 
+// ── Seed old coins ────────────────────────────────────────────────
+// PumpPortal only pushes NEW token creates. For old coins with established
+// floors we must explicitly subscribe. We fetch recently traded pump.fun
+// tokens and seed the ones that look like they have price history.
+async function seedOldCoins() {
+  try {
+    // Fetch most recently traded pump.fun tokens (not yet graduated — still on bonding curve)
+    const r = await fetch(
+      'https://frontend-api.pump.fun/coins?limit=50&offset=0&sort=last_trade_timestamp&order=DESC&includeNsfw=false',
+      { signal: AbortSignal.timeout(8_000) }
+    );
+    if (!r.ok) return;
+    const coins = await r.json();
+    if (!Array.isArray(coins)) return;
+
+    let seeded = 0;
+    for (const c of coins) {
+      const mint = c.mint;
+      if (!mint || registry.has(mint)) continue;
+
+      // Skip if it graduated (>85 SOL) — different strategy needed
+      const vSol = (c.virtual_sol_reserves || 0) / 1e9;
+      if (vSol > 85) continue;
+
+      // Only seed if it has meaningful trade history (not brand new)
+      const ageMs = Date.now() - (c.created_timestamp || 0);
+      if (ageMs < 5 * 60_000) continue;  // skip coins younger than 5 min
+
+      const category = 'old';
+      const token = await ensureToken(mint, c.symbol || mint.slice(0,6), c.name || '', category);
+      token.isSeeded = true;
+      token.vSol     = vSol;
+
+      // Subscribe to live trades on this token
+      if (ppWs && ppWs.readyState === 1) {
+        ppWs.send(JSON.stringify({ method: 'subscribeTokenTrade', keys: [mint] }));
+      }
+      seeded++;
+
+      // Throttle — don't hammer Helius with 50 simultaneous history loads
+      if (seeded % 5 === 0) await new Promise(r => setTimeout(r, 1000));
+    }
+
+    if (seeded > 0)
+      log('SEED', 'system', 'system', { seeded, total: registry.size });
+  } catch (e) {
+    log('SEED_FAIL', 'system', 'system', { error: e.message });
+  }
+}
+
 // ── LaserStream management ────────────────────────────────────────
 async function activateLaser(token) {
   if (!REAL_TRADING || laserSlots.has(token.mint)) return;
@@ -678,7 +728,7 @@ app.post('/api/resume', (_req, res) => {
 // ── Start ─────────────────────────────────────────────────────────
 const server = createServer(app);
 server.listen(PORT, () => {
-  console.log(`\n🐊 2Wallets Algo v1.0 — port ${PORT}`);
+  console.log(`\n🐊 2Wallets Algo v1.1 — port ${PORT}`);
   console.log(`📁 Logging to: ${LOG_FILE}`);
   console.log(`⚡ Real trading: ${REAL_TRADING}`);
   console.log(`🔒 Start halted: ${tradingHalted}`);
@@ -686,3 +736,10 @@ server.listen(PORT, () => {
 });
 
 connectPP();
+
+// Seed old coins 5s after startup (so PP WS is open first)
+// then refresh every 3 minutes to catch newly active tokens
+setTimeout(() => {
+  seedOldCoins().catch(() => {});
+  setInterval(() => seedOldCoins().catch(() => {}), 3 * 60_000);
+}, 5_000);
