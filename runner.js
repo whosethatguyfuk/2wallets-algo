@@ -317,8 +317,7 @@ async function seedOldCoins() {
       }
     }
 
-    if (seeded > 0)
-      log('SEED', 'system', 'system', { seeded, total: registry.size });
+    log('SEED', 'system', 'system', { seeded, total: registry.size });
   } catch (e) {
     log('SEED_FAIL', 'system', 'system', { error: e.message });
   }
@@ -825,6 +824,21 @@ app.get('/api/stats', (_req, res) => {
     laserSlots: laserSlots.size,
     byState, activeTokens, watchingSample,
   });
+});
+
+// Full registry dump — useful for diagnosing discovery issues
+app.get('/api/registry', (_req, res) => {
+  const all = [...registry.values()].map(t => ({
+    symbol: t.symbol, mint: t.mint, state: t.state, category: t.category,
+    mc: Math.round(t.currentMc || 0),
+    ath: Math.round(t.sessionHigh || 0),
+    floor: Math.round(t.sessionLow < Infinity ? t.sessionLow : 0),
+    buyers: Math.max(t.uniqueBuyers?.size ?? 0, t.resolvedBuyerCount ?? 0),
+    histLoaded: t.historyLoaded, histTrades: t.historyTrades,
+    liveTrades: t.liveTrades || 0, isSeeded: t.isSeeded || false,
+    lastTick: t.lastTickTs ? Math.round((Date.now() - t.lastTickTs) / 1000) + 's ago' : 'never',
+  })).sort((a, b) => b.ath - a.ath);
+  res.json(all);
 });
 
 app.get('/api/closed', (_req, res) => {
