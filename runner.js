@@ -896,7 +896,7 @@ app.get('/api/stats', (_req, res) => {
     }));
 
   res.json({
-    version:    '1.1.0',
+    version:    '1.2.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol?.toFixed(4) ?? null,
