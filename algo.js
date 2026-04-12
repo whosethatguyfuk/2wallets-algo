@@ -128,6 +128,7 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     // Update trade metrics
     trade.currentMc  = mc;
     trade.totalVol  += sol;
+    trade.tickCount  = (trade.tickCount || 0) + 1;
     if (isBuy) trade.buyVol  += sol;
     else       trade.sellVol += sol;
     if (mc > trade.peakMc) trade.peakMc = mc;
@@ -137,6 +138,13 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     // Immediately move to EXIT_UNLOCKED — no hold timer in order-flow mode
     if (token.state === STATE.HOLDING) {
       transition(token, STATE.EXIT_UNLOCKED, `order-flow mode: exit gates active immediately`, log);
+    }
+
+    // No-follow-through exit: if after 5 ticks we've seen zero buys,
+    // the catalyst was isolated — exit before bleeding to stop loss
+    if (trade.tickCount >= 5 && trade.buyVol === 0) {
+      log('EXIT_GATE', token.symbol, token.mint, { gate: 'NO_FOLLOWTHROUGH', ticks: trade.tickCount });
+      return closeTrade(token, mc, now, 'NO_FOLLOWTHROUGH', log);
     }
 
     // Run exit gates every tick — order book decides
