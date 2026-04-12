@@ -119,6 +119,22 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
   const now = Date.now();
   const nowSec = now / 1000;
 
+  // ══════════════════════════════════════════════════════════════
+  // IMMUTABLE QUALITY FIREWALL — runs on EVERY tick, EVERY state
+  // If a token is poisoned (bundle/mayhem), it gets blacklisted
+  // immediately. No exceptions. No state can bypass this.
+  // ══════════════════════════════════════════════════════════════
+  if (token.state !== STATE.BLACKLISTED && token.state !== STATE.CLOSED) {
+    if (token.bundled) {
+      transition(token, STATE.BLACKLISTED, `FIREWALL: bundled (${token.bundleTxCount} txns)`, log);
+      return token.state === STATE.ARMED ? { type: 'DISARM', token } : null;
+    }
+    if (token.mayhemDetected) {
+      transition(token, STATE.BLACKLISTED, `FIREWALL: mayhem agent detected`, log);
+      return token.state === STATE.ARMED ? { type: 'DISARM', token } : null;
+    }
+  }
+
   // ── If in trade: manage exit ──────────────────────────────────
   // Pure order flow — exit gates run on EVERY tick immediately. No hold timer.
   if (token.state === STATE.HOLDING || token.state === STATE.EXIT_UNLOCKED) {

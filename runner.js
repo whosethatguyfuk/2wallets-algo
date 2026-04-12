@@ -186,13 +186,16 @@ async function loadHistory(token) {
     allTrades.sort((a, b) => a.ts - b.ts);
 
     // ── Bundle detection from history ────────────────────────────────
-    // A bundle = same wallet doing multiple buys within 2s of the first trade.
-    // Applies to ALL token categories (old seeded coins can be bundled too).
+    // Two checks:
+    // 1. Same wallet doing 6+ buys in 2s = single-wallet bundle
+    // 2. 8+ buys from 3+ wallets in 3s = coordinated multi-wallet bundle
     if (allTrades.length >= 3) {
       const firstTs = allTrades[0].ts;
-      const earlyTrades = allTrades.filter(t => t.isBuy && t.ts - firstTs < 2_000);
+
+      // Check 1: single-wallet bundle
+      const earlyBuys2s = allTrades.filter(t => t.isBuy && t.ts - firstTs < 2_000);
       const walletCounts = new Map();
-      for (const t of earlyTrades) {
+      for (const t of earlyBuys2s) {
         if (t.trader) walletCounts.set(t.trader, (walletCounts.get(t.trader) || 0) + 1);
       }
       const maxSameWallet = Math.max(...walletCounts.values(), 0);
@@ -200,9 +203,19 @@ async function loadHistory(token) {
         token.bundled       = true;
         token.bundleTxCount = maxSameWallet;
         log('BUNDLED_HISTORY', token.symbol, token.mint, {
-          wallet: [...walletCounts.entries()].find(([,v]) => v === maxSameWallet)?.[0]?.slice(0,8),
-          txns:   maxSameWallet,
-          windowMs: 2000,
+          type: 'single-wallet', wallet: [...walletCounts.entries()].find(([,v]) => v === maxSameWallet)?.[0]?.slice(0,8),
+          txns: maxSameWallet,
+        });
+      }
+
+      // Check 2: multi-wallet coordinated burst
+      const earlyBuys3s = allTrades.filter(t => t.isBuy && t.ts - firstTs < 3_000);
+      const uniqueWallets = new Set(earlyBuys3s.map(t => t.trader).filter(Boolean));
+      if (earlyBuys3s.length >= 8 && uniqueWallets.size >= 3) {
+        token.bundled       = true;
+        token.bundleTxCount = earlyBuys3s.length;
+        log('BUNDLED_HISTORY', token.symbol, token.mint, {
+          type: 'multi-wallet', txns: earlyBuys3s.length, wallets: uniqueWallets.size,
         });
       }
     }
@@ -579,7 +592,9 @@ function connectPP() {
       token.mayhemDetected = true;
     }
 
-    // Bundle detection
+    // Bundle detection — two methods:
+    // 1. Create-window: same wallet doing 6+ buys in 1.5s (existing)
+    // 2. Burst detection: ANY 8+ trades in first 3s of token life = coordinated launch
     if (token._bundleWindow) {
       const age = Date.now() - token._bundleWindow.start;
       if (age < BUNDLE_WINDOW_MS) {
@@ -591,6 +606,30 @@ function connectPP() {
         }
       } else {
         delete token._bundleWindow;
+      }
+    }
+
+    // Burst detection: track first 3 seconds of observed trading
+    if (!token._burstWindow) {
+      token._burstWindow = { start: Date.now(), count: 1, wallets: new Set() };
+      if (msg.traderPublicKey) token._burstWindow.wallets.add(msg.traderPublicKey);
+    } else if (token._burstWindow) {
+      const burstAge = Date.now() - token._burstWindow.start;
+      if (burstAge < 3_000) {
+        token._burstWindow.count++;
+        if (msg.traderPublicKey) token._burstWindow.wallets.add(msg.traderPublicKey);
+        // 8+ trades in 3s with 3+ different wallets = coordinated multi-wallet bundle
+        if (token._burstWindow.count >= 8 && token._burstWindow.wallets.size >= 3) {
+          token.bundled       = true;
+          token.bundleTxCount = token._burstWindow.count;
+          log('BUNDLED_BURST', token.symbol, mint, {
+            txns: token._burstWindow.count,
+            wallets: token._burstWindow.wallets.size,
+            windowMs: burstAge,
+          });
+        }
+      } else {
+        delete token._burstWindow;
       }
     }
 
