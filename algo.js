@@ -19,7 +19,7 @@
 import { STATE, MIN_HOLD_SECS, REENTRY_COOLDOWN_SECS,
          ARM_TIMEOUT_SECS, TRADE_FEE_PCT, POSITION_SOL,
          MAX_TRADES_PER_TOKEN, FLOOR_TOUCH_PCT,
-         FLOOR_MIN_TOUCHES } from './rules.js';
+         FLOOR_MIN_TOUCHES, UNLOCK_MC_USD } from './rules.js';
 
 import { runEntryGates, runExitGates, floorGate } from './gates.js';
 
@@ -188,11 +188,15 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     }
     token.floorMc = token.sessionLow;
 
-    // Check if price is in arm zone (within 8% of floor)
+    // Check if price is in arm zone (within 8% of floor).
+    // ALSO require: token must have previously pumped above UNLOCK_MC_USD ($8K).
+    // New tokens at launch price ($4K) should NEVER arm — they haven't had a real
+    // pump yet, so any "floor" they have is just the launch price.
     const floor      = token.sessionLow;
     const aboveFloor = (mc - floor) / floor;
+    const hasUnlocked = token.sessionHigh >= UNLOCK_MC_USD;
 
-    if (aboveFloor <= 0.08 && mc > floor * 0.85) {
+    if (aboveFloor <= 0.08 && mc > floor * 0.85 && hasUnlocked) {
       token.armedAt = nowSec;
       transition(token, STATE.ARMED, `in arm zone: ${(aboveFloor*100).toFixed(1)}% above floor $${floor.toFixed(0)}`, log);
       return { type: 'ARM', token };

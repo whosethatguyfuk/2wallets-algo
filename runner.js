@@ -745,6 +745,7 @@ app.get('/api/stats', (_req, res) => {
     .map(t => ({
       symbol: t.symbol, mint: t.mint, state: t.state,
       mc: Math.round(t.currentMc),
+      high: Math.round(t.sessionHigh),
       floor: Math.round(t.sessionLow < Infinity ? t.sessionLow : 0),
       histTrades: t.historyTrades,
       floorTouches: (t.historyFloorTouches || 0),
