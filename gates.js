@@ -94,8 +94,14 @@ export function floorGate(token) {
   // Historical touches survive the rolling window purge (set during history loading)
   const histTouches = token.historyFloorTouches || 0;
 
-  // Use whichever is higher — historical evidence is just as valid
-  const touches = Math.max(liveTouches, histTouches);
+  // Confirmed touches locked in at arm time — prevents rolling window from purging evidence.
+  // When the FLOORED→ARMED transition fires, we snapshot the touch count.
+  // Without this, a token can arm correctly but then fail runEntryGates 60s later
+  // because the 5-min mcHistory scrolled past the floor evidence.
+  const confirmedTouches = token.confirmedFloorTouches || 0;
+
+  // Use whichever is highest — all sources are valid evidence
+  const touches = Math.max(liveTouches, histTouches, confirmedTouches);
 
   if (touches < FLOOR_MIN_TOUCHES)
     return fail(`floor at $${floor.toFixed(0)} only touched ${touches}x, need ${FLOOR_MIN_TOUCHES} (live:${liveTouches} hist:${histTouches})`);

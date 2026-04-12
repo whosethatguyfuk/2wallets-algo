@@ -749,7 +749,10 @@ app.get('/api/stats', (_req, res) => {
       high: Math.round(t.sessionHigh),
       floor: Math.round(t.sessionLow < Infinity ? t.sessionLow : 0),
       histTrades: t.historyTrades,
-      floorTouches: (t.historyFloorTouches || 0),
+      floorTouches: Math.max(t.historyFloorTouches || 0, t.confirmedFloorTouches || 0, t.floorTouches || 0),
+      buyers: t.uniqueBuyers?.size ?? t.resolvedBuyerCount ?? 0,
+      liveTrades: t.liveTrades || 0,
+      gateFail: t.lastGateFail || null,
       category: t.category,
     }));
 

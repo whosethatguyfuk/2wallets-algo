@@ -201,6 +201,12 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
 
     if (aboveFloor <= 0.08 && mc > floor * 0.85 && hasRealPump) {
       token.armedAt = nowSec;
+      // Lock in floor touch evidence NOW — the 5-min mcHistory window will purge it
+      // and floorGate would re-fail in runEntryGates if we don't preserve this.
+      token.confirmedFloorTouches = Math.max(
+        token.historyFloorTouches || 0,
+        token.floorTouches || 0
+      );
       transition(token, STATE.ARMED, `in arm zone: ${(aboveFloor*100).toFixed(1)}% above floor $${floor.toFixed(0)} (high was $${token.sessionHigh.toFixed(0)})`, log);
       return { type: 'ARM', token };
     }
@@ -233,7 +239,11 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
 
     // Run all 8 entry gates
     const entryResult = runEntryGates(token, isBuy, sol, mc, openCount, log);
-    if (!entryResult.pass) return null;
+    if (!entryResult.pass) {
+      // Store last failure reason so stats endpoint can surface it without a separate call
+      token.lastGateFail = `${entryResult.gate}: ${entryResult.reason}`;
+      return null;
+    }
 
     // All gates passed — open the trade
     transition(token, STATE.BUYING, 'all entry gates passed', log);
