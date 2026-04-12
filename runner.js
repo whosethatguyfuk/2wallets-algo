@@ -509,8 +509,8 @@ function connectPP() {
     }
 
     const isBuy    = msg.txType === 'buy';
-    const sol      = (msg.solAmount || 0) / 1e9;
-    const vSol     = (msg.vSolInBondingCurve || 0) / 1e9;
+    const sol      = msg.solAmount || 0;
+    const vSol     = msg.vSolInBondingCurve || 0;
 
     // PumpPortal sends marketCapSol directly — use it, don't recompute.
     // Old code computed from vSol/tokenAmount which was dimensionally wrong.
