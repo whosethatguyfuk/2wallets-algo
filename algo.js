@@ -19,7 +19,7 @@
 import { STATE, MIN_HOLD_SECS, REENTRY_COOLDOWN_SECS,
          ARM_TIMEOUT_SECS, TRADE_FEE_PCT, POSITION_SOL,
          MAX_TRADES_PER_TOKEN, FLOOR_TOUCH_PCT,
-         FLOOR_MIN_TOUCHES, UNLOCK_MC_USD } from './rules.js';
+         FLOOR_MIN_TOUCHES, UNLOCK_MC_USD, STOP_LOSS_PCT } from './rules.js';
 
 import { runEntryGates, runExitGates, floorGate } from './gates.js';
 
@@ -195,9 +195,11 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     const floor      = token.sessionLow;
     const aboveFloor = (mc - floor) / floor;
 
-    // Must have pumped at least once above its floor + 10% (i.e. sessionHigh > floor*1.1)
-    // This is weaker than UNLOCK_MC_USD but still filters pure launch-price floors.
-    const hasRealPump = token.sessionHigh > floor * 1.10;
+    // Must have pumped at least 50% above the floor (sessionHigh > floor*1.5).
+    // A token going $4200→$4700 (+12%) is just noise — not a real pump.
+    // Real pump.fun winners pump to 2-4x before pulling back to floor.
+    // This ensures we only arm tokens that have proven real demand.
+    const hasRealPump = token.sessionHigh > floor * 1.50;
 
     if (aboveFloor <= 0.08 && mc > floor * 0.85 && hasRealPump) {
       token.armedAt = nowSec;
@@ -301,9 +303,9 @@ function closeTrade(token, mc, now, reason, log) {
   const trade   = token.activeTrade;
   const holdSec = (now - trade.entryTs) / 1000;
 
-  // Cap max loss at STOP_LOSS_PCT for realism
+  // Cap max loss at STOP_LOSS_PCT for realism (paper trading uses actual price movement)
   let exitMc = mc;
-  const worstMc = trade.entryMc * (1 - 0.05);
+  const worstMc = trade.entryMc * (1 - STOP_LOSS_PCT / 100);
   if (exitMc < worstMc) exitMc = worstMc;
 
   const pnlRaw = (exitMc - trade.entryMc) / trade.entryMc * 100;
