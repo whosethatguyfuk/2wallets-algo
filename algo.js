@@ -153,14 +153,16 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
 
   // ── WATCHING: waiting for history ────────────────────────────
   if (token.state === STATE.WATCHING) {
-    // Count live ticks toward history for brand-new tokens (no on-chain history yet).
-    // Helius returns 0 trades for tokens launched seconds ago. Live PumpPortal ticks
-    // still count — we just need enough price data to detect a floor.
-    if (token.historyLoaded) token.liveTrades = (token.liveTrades || 0) + 1;
+    // Count ALL live ticks — even before history loads.
+    // Ticks arrive in milliseconds; history loads in 2-5 seconds.
+    // If we only count after historyLoaded, we miss the initial rush.
+    token.liveTrades = (token.liveTrades || 0) + 1;
 
+    // For new tokens: 10 live ticks + history loaded (even if 0 Helius trades).
+    // For old/seeded tokens: Helius history must have trades (floor evidence).
     const totalKnown = token.historyTrades + (token.liveTrades || 0);
     if (token.historyLoaded && totalKnown >= 10) {
-      transition(token, STATE.INDEXED, `history ready (hl:${token.historyTrades} live:${token.liveTrades||0})`, log);
+      transition(token, STATE.INDEXED, `ready (hist:${token.historyTrades} live:${token.liveTrades})`, log);
     }
     return null;
   }
