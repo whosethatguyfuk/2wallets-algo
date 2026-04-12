@@ -218,14 +218,23 @@ async function loadHistory(token) {
       sessionLow:   Math.round(token.sessionLow || 0),
       floorTouches: token.historyFloorTouches,
       buyers:       token.resolvedBuyerCount,
+      liveSoFar:    token.liveTrades || 0,
     });
 
-    // Don't wait for next live tick — advance state immediately if history qualifies.
-    // Seeded old coins might not get fresh ticks for minutes; they'd stay WATCHING forever.
-    if (count >= HISTORY_MIN_TRADES && token.state === STATE.WATCHING && token.sessionLow < Infinity) {
-      const syntheticMc = token.sessionLow * 1.05; // conservative: just above floor
-      const event = onTick(token, syntheticMc, Date.now(), false, 0, openCount, false, log);
-      handleEvent(event).catch(() => {});
+    // Immediately check if we have enough total data to advance.
+    // Two cases:
+    //   1. Old/seeded coin: Helius loaded enough history (count >= HISTORY_MIN_TRADES)
+    //   2. New pair: live ticks accumulated while history was loading (liveTrades >= some)
+    // In both cases we use a synthetic tick to kick the state machine.
+    if (token.state === STATE.WATCHING) {
+      const totalKnown = count + (token.liveTrades || 0);
+      const refMc      = token.currentMc > 0 ? token.currentMc
+                       : token.sessionLow < Infinity ? token.sessionLow * 1.05
+                       : 0;
+      if (totalKnown >= HISTORY_MIN_TRADES && refMc > 0) {
+        const event = onTick(token, refMc, Date.now(), false, 0, openCount, false, log);
+        handleEvent(event).catch(() => {});
+      }
     }
   } catch (e) {
     log('HISTORY_FAIL', token.symbol, token.mint, { error: e.message });
@@ -451,9 +460,23 @@ function connectPP() {
     ppWs.send(JSON.stringify({ method: 'subscribeNewToken' }));
   });
 
+  // Keep last 10 PP messages for diagnostics (no sensitive data)
+  const ppMsgLog = [];
+
   ppWs.on('message', async (raw) => {
     let msg;
     try { msg = JSON.parse(raw.toString()); } catch { return; }
+
+    // Track recent messages globally for /api/diag
+    if (!global._ppMsgLog) global._ppMsgLog = [];
+    global._ppMsgLog.unshift({
+      txType: msg.txType,
+      symbol: msg.symbol || msg.mint?.slice(0,6),
+      marketCapSol: msg.marketCapSol,
+      solAmount: msg.solAmount,
+      ts: Date.now(),
+    });
+    if (global._ppMsgLog.length > 20) global._ppMsgLog.length = 20;
 
     // ── New token ─────────────────────────────────────────────
     if (msg.txType === 'create') {
@@ -792,6 +815,12 @@ app.get('/api/debug', (_req, res) => {
     .slice(0, 5)
     .map(t => ({ symbol: t.symbol, histLoaded: t.historyLoaded, histTrades: t.historyTrades }));
   res.json({ byState, samples, watchingSample: watching });
+});
+
+// PP message diagnostic — helps trace why mc=0
+app.get('/api/diag', (_req, res) => {
+  // Expose ppMsgLog from closure — we need a workaround since it's scoped inside connectPP
+  res.json({ note: 'use /api/stats byState for state info', ppMsgLog: global._ppMsgLog || [] });
 });
 
 app.get('/api/stream', (req, res) => {
