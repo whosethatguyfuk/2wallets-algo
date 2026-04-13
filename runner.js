@@ -1113,7 +1113,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '2.10.1',
+    version:    '2.11.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,

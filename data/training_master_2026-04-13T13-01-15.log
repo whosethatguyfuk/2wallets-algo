@@ -1089,3 +1089,259 @@
   FLOORED & READY: GoutGout MC=$17483 floor=$11237 aboveFloor=55.6%
   FLOORED & READY: Kangaroo MC=$5073 floor=$5073 aboveFloor=0%
   FLOORED & READY: ZUCKERBOT MC=$4106 floor=$4106 aboveFloor=0%
+[2026-04-13 17:38:20] Session 5 | Check #8 | 24min remaining
+[2026-04-13 17:38:20] [S5-CHECK8] Taking state snapshot...
+  Version: 2.10.1
+  Registry: ? | Nursery: 26 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 0 | WR: 0%
+  States: {}
+  Blocked→Armed pipeline: 3 tokens blocked | 1 armed
+[2026-04-13 17:43:21] Session 5 | Check #9 | 19min remaining
+[2026-04-13 17:43:21] [S5-CHECK9] Taking state snapshot...
+  Version: 2.10.1
+  Registry: ? | Nursery: 59 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 6 | WR: 50%
+  States: {}
+  Blocked→Armed pipeline: 32 tokens blocked | 1 armed
+  FLOORED & READY: X Chat MC=$7643 floor=$7627 aboveFloor=0.2%
+  FLOORED & READY: XIA MC=$8522 floor=$7914 aboveFloor=7.7%
+  FLOORED & READY: TRUMBULL MC=$6067 floor=$4967 aboveFloor=22.1%
+  FLOORED & READY: STEVEAOKI MC=$6559 floor=$6046 aboveFloor=8.5%
+  FLOORED & READY: Bullmoji MC=$12924 floor=$11855 aboveFloor=9%
+[2026-04-13 17:48:23] Session 5 | Check #10 | 14min remaining
+[2026-04-13 17:48:23] [S5-CHECK10] Taking state snapshot...
+  Version: 2.10.1
+  Registry: ? | Nursery: 110 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 13 | WR: 38.5%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 4 armed
+  !! GATE VIOLATION: Psyop - ARM_ZONE
+  !! GATE VIOLATION: FATOU - RE_ENTRY
+  !! GATE VIOLATION: GoutGout - SELL_PRESSURE
+  FLOORED & READY: X Chat MC=$6455 floor=$6455 aboveFloor=0%
+  FLOORED & READY: Haku MC=$20737 floor=$13876 aboveFloor=49.4%
+  FLOORED & READY: STEVEAOKI MC=$6585 floor=$6046 aboveFloor=8.9%
+[2026-04-13 17:53:24] Session 5 | Check #11 | 9min remaining
+[2026-04-13 17:53:24] [S5-CHECK11] Taking state snapshot...
+  Version: 2.10.1
+  Registry: ? | Nursery: 103 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 26 | WR: 38.5%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 4 armed
+  !! GATE VIOLATION: STEVEAOKI - SELL_PRESSURE
+  !! GATE VIOLATION: FMG - SELL_PRESSURE
+  FLOORED & READY: Psyop MC=$23725 floor=$21494 aboveFloor=10.4%
+[2026-04-13 17:58:25] Session 5 | Check #12 | 4min remaining
+[2026-04-13 17:58:25] [S5-CHECK12] Taking state snapshot...
+  Version: 2.10.1
+  Registry: ? | Nursery: 75 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 35 | WR: 34.3%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 8 armed
+  !! GATE VIOLATION: FATOU - ARM_ZONE
+  !! GATE VIOLATION: NEIL - SELL_PRESSURE
+  !! GATE VIOLATION: FMG - SELL_PRESSURE
+  !! GATE VIOLATION: shitcoin - SELL_PRESSURE
+  !! GATE VIOLATION: Teehee - SELL_PRESSURE
+  !! GATE VIOLATION: GNWR - SELL_PRESSURE
+  FLOORED & READY: X Chat MC=$8079 floor=$6506 aboveFloor=24.2%
+  FLOORED & READY: Psyop MC=$23915 floor=$23707 aboveFloor=0.9%
+[2026-04-13 18:03:26] 
+[2026-04-13 18:03:26] Session 5 COMPLETE — Running comprehensive review...
+
+================================================================================
+  SESSION 5 HOURLY REVIEW — 2026-04-13T11:03:26.753853+00:00
+  Log: /Users/kashanrana/Downloads/Printar/2wallets/./data/session_5_2026-04-13T18-03.jsonl
+================================================================================
+
+  [1] SCANNING PUMP.FUN FOR BONDED / HIGH-PERFORMING COINS...
+    Found 139 total coins | 72 bonded | 7 significant (ATH>$15K)
+
+  [2] CROSS-REFERENCING WITH OUR REGISTRY...
+    Caught: 4 | Missed: 3 | Missed bonded: 1
+
+  [3] TRADE ANALYSIS...
+
+  [4] GATE COMPLIANCE...
+
+  [5] ERROR ACCOUNTING (our errors + data provider errors)...
+
+  [6] ASSEMBLING REPORT...
+
+================================================================================
+  SESSION 5 REPORT
+================================================================================
+
+  BOT STATUS
+    Version: 2.10.1 | Registry: 226 | Nursery: 77 | Born total: 481
+    PnL: -0.211697 SOL | Trades: 43 | WR: 34.9%
+    States: {'FLOORED': 175, 'CLOSED': 3, 'INDEXED': 36, 'ARMED': 6, 'BLACKLISTED': 5, 'WATCHING': 1}
+
+  TRADE ANALYSIS (45 trades)
+    GoutGout     entry=$  8915 exit=$  8915 PnL=-2.0% hold=10s reason=EMERGENCY_STOP [EXITED_EARLY_ATH_WAS_$28378]
+    justin       entry=$  9330 exit=$  9666 PnL=+1.6% hold=87s reason=SELLER_EXIT [clean]
+    Wagie        entry=$ 22577 exit=$ 21558 PnL=-6.5% hold=6s reason=STOP_LOSS [BIG_LOSS_-6.5%]
+    Wagie        entry=$ 23336 exit=$ 22134 PnL=-7.2% hold=0s reason=STOP_LOSS [INSTANT_EXIT | BIG_LOSS_-7.2%]
+    Wagie        entry=$ 25623 exit=$ 25961 PnL=-0.7% hold=11s reason=SELLER_EXIT [clean]
+    Wagie        entry=$ 23485 exit=$ 25400 PnL=+6.2% hold=8s reason=SELLER_EXIT [clean]
+    Wagie        entry=$ 21949 exit=$ 21545 PnL=-3.8% hold=5s reason=SELLER_EXIT [clean]
+    Haku         entry=$ 11364 exit=$ 11295 PnL=-2.6% hold=50s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$21243]
+    Wagie        entry=$ 22044 exit=$ 24276 PnL=+8.1% hold=18s reason=SELLER_EXIT [clean]
+    justin       entry=$  9127 exit=$  8667 PnL=-7.0% hold=63s reason=STOP_LOSS [BIG_LOSS_-7.0% | EXITED_EARLY_ATH_WAS_$13912]
+    XIA          entry=$  6065 exit=$  5936 PnL=-4.1% hold=38s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$10382]
+    CRACKY       entry=$  4080 exit=$  3895 PnL=-6.5% hold=33s reason=STOP_LOSS [BIG_LOSS_-6.5% | EXITED_EARLY_ATH_WAS_$10330]
+    GoutGout     entry=$  9836 exit=$ 11841 PnL=+18.4% hold=23s reason=TAKE_PROFIT [clean]
+    BabyBull     entry=$  7635 exit=$  7378 PnL=-5.4% hold=19s reason=SELLER_EXIT [BIG_LOSS_-5.4%]
+    justin       entry=$  8184 exit=$  8001 PnL=-4.2% hold=38s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$13912]
+    GoutGout     entry=$  9033 exit=$  9033 PnL=-2.0% hold=13s reason=EMERGENCY_STOP [EXITED_EARLY_ATH_WAS_$28378]
+    Jonathan     entry=$  7885 exit=$  7497 PnL=-6.9% hold=2s reason=STOP_LOSS [BIG_LOSS_-6.9% | EXITED_EARLY_ATH_WAS_$16283]
+    Haku         entry=$ 11769 exit=$ 11700 PnL=-2.6% hold=5s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$21243]
+    CRACKY       entry=$  4406 exit=$  4330 PnL=-3.7% hold=45s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$10330]
+    GoutGout     entry=$  9349 exit=$  9349 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$28378]
+    GoutGout     entry=$  8239 exit=$  8785 PnL=+4.6% hold=20s reason=SELLER_EXIT [clean]
+    XIA          entry=$  5942 exit=$  6392 PnL=+5.6% hold=33s reason=SELLER_EXIT [clean]
+    justin       entry=$  7519 exit=$  8758 PnL=+14.5% hold=5s reason=SELLER_EXIT [clean]
+    Haku         entry=$ 13865 exit=$ 13615 PnL=-3.8% hold=3s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$21243]
+    FATOU        entry=$  4116 exit=$  3914 PnL=-6.9% hold=38s reason=STOP_LOSS [BIG_LOSS_-6.9% | EXITED_EARLY_ATH_WAS_$11943]
+    justin       entry=$  6648 exit=$  7574 PnL=+11.9% hold=86s reason=SELLER_EXIT [clean]
+    AICATS       entry=$  6928 exit=$  7040 PnL=-0.4% hold=5s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$10770]
+    AICATS       entry=$  8519 exit=$  8621 PnL=-0.8% hold=44s reason=SELLER_EXIT [clean]
+    CRACKY       entry=$  5593 exit=$  5402 PnL=-5.4% hold=15s reason=SELLER_EXIT [BIG_LOSS_-5.4% | EXITED_EARLY_ATH_WAS_$10330]
+    justin       entry=$  6151 exit=$  6106 PnL=-2.7% hold=26s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$13912]
+    CRACKY       entry=$  5255 exit=$  5148 PnL=-4.0% hold=3s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$10330]
+    CRACKY       entry=$  5771 exit=$  5656 PnL=-4.0% hold=17s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$10330]
+    CRACKY       entry=$  5985 exit=$  6621 PnL=+8.6% hold=1s reason=SELLER_EXIT [clean]
+    CRACKY       entry=$  6344 exit=$  6245 PnL=-3.6% hold=3s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$10330]
+    XIA          entry=$  7266 exit=$  6959 PnL=-6.2% hold=12s reason=STOP_LOSS [BIG_LOSS_-6.2%]
+    CRACKY       entry=$  6145 exit=$  6383 PnL=+1.9% hold=11s reason=SELLER_EXIT [clean]
+    Psyop        entry=$ 17700 exit=$ 17701 PnL=-2.0% hold=14s reason=EMERGENCY_STOP [clean]
+    XIA          entry=$  8544 exit=$  8563 PnL=-1.8% hold=3s reason=SELLER_EXIT [clean]
+    XIA          entry=$  9208 exit=$  9124 PnL=-2.9% hold=4s reason=SELLER_EXIT [clean]
+    FATOU        entry=$  4833 exit=$  4833 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$11943]
+    Haku         entry=$ 13174 exit=$ 12884 PnL=-4.2% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$21243]
+    Haku         entry=$ 12972 exit=$ 12781 PnL=-3.5% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$21243]
+    Haku         entry=$ 13394 exit=$ 12810 PnL=-6.4% hold=2s reason=STOP_LOSS [BIG_LOSS_-6.4% | EXITED_EARLY_ATH_WAS_$21243]
+    Haku         entry=$ 14089 exit=$ 14512 PnL=+1.0% hold=1s reason=TRAIL_STOP [INSTANT_EXIT]
+    Haku         entry=$ 12458 exit=$ 13158 PnL=+3.6% hold=19s reason=TRAIL_STOP [clean]
+
+  MARKET COVERAGE
+    Significant coins (ATH>$15K): 7
+    Bonded coins: 72
+    WE CAUGHT: 4 | WE MISSED: 3 | Coverage: 57.1%
+
+    -- CAUGHT (top 10) --
+    Wagie        ATH=$  29,435 MC=$  24,295 state=CLOSED traded=True
+    WATERGATE    ATH=$  24,108 MC=$  19,291 state=FLOORED traded=False
+    Haku         ATH=$  21,243 MC=$  10,536 state=CLOSED traded=True
+    PISTACHIO    ATH=$  17,745 MC=$  17,136 state=FLOORED traded=False
+
+    -- MISSED (top 15) --
+    JesusTremp   ATH=$ 259,872 MC=$ 212,968 bonded=True WHY: CREATED_135min_AGO (before our session), NEVER_DISCOVERED
+    chaching     ATH=$  30,333 MC=$     413 bonded=False WHY: IN_NURSERY_NOT_PROMOTED
+    BATTLE       ATH=$  27,812 MC=$  19,018 bonded=False WHY: NEVER_DISCOVERED
+
+  GATE COMPLIANCE
+    Violations: 2 | Stuck WATCHING: 0 | Stale: 89
+    !! FATOU armed but HISTORY fails: only 3 total trades (hist:0 live:3), need 10
+    !! FMG armed but SELL_PRESSURE fails: low activity: only 3 pre-catalyst ticks (need 4)
+
+  ERROR ACCOUNTING
+    Spot-checked: 10 tokens
+    Data errors found: 1
+    [MC_DRIFT] 1000倍: PumpPortal may have stopped sending ticks, or our refresh failed
+
+  POSSIBLE ERROR SOURCES (to account for in analysis)
+    - PumpPortal: can misclassify buy/sell, report stale solAmount, silently drop subscriptions
+    - Our bot: MC direction override can flip sells to buys for catalyst, floor detection on thin data
+    - Pump.fun API: phantom MC (real_sol=0 but high MC), stale ATH, delayed migration status
+
+  RECOMMENDATIONS FOR NEXT SESSION
+    1. GATE_VIOLATIONS: 2 tokens armed with failing gates. Fix the state machine before next session.
+    2. STALENESS: 89/226 tokens stale. PP re-subscribe or API refresh may be failing.
+    3. DATA_ERRORS: 1 data integrity issues found. See errorAccounting for details.
+
+  Log saved to: /Users/kashanrana/Downloads/Printar/2wallets/./data/session_5_2026-04-13T18-03.jsonl
+================================================================================
+
+[2026-04-13 18:04:03] Session 5 review done.
+[2026-04-13 18:04:03] 
+[2026-04-13 18:04:03] 
+[2026-04-13 18:04:03] ################################################################
+[2026-04-13 18:04:03]   SESSION 6 / 6 — STARTING
+[2026-04-13 18:04:03] ################################################################
+[2026-04-13 18:04:03] Session 6 | Check #1 | 60min remaining
+[2026-04-13 18:04:03] [S6-CHECK1] Taking state snapshot...
+  Version: 2.10.1
+  Registry: ? | Nursery: 46 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 48 | WR: 31.3%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 5 armed
+  !! GATE VIOLATION: FMG - SELL_PRESSURE
+  FLOORED & READY: X Chat MC=$7923 floor=$7437 aboveFloor=6.5%
+  FLOORED & READY: Psyop MC=$23506 floor=$23398 aboveFloor=0.5%
+  FLOORED & READY: FATOU MC=$5477 floor=$4360 aboveFloor=25.6%
+[2026-04-13 18:09:04] Session 6 | Check #2 | 54min remaining
+[2026-04-13 18:09:04] [S6-CHECK2] Taking state snapshot...
+  Version: 2.10.1
+  Registry: ? | Nursery: 62 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 61 | WR: 31.1%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 5 armed
+  !! GATE VIOLATION: Haku - SELL_PRESSURE
+  !! GATE VIOLATION: CANBULL - RE_ENTRY
+  FLOORED & READY: X Chat MC=$7205 floor=$7187 aboveFloor=0.2%
+  FLOORED & READY: Psyop MC=$23358 floor=$23304 aboveFloor=0.2%
+  FLOORED & READY: FATOU MC=$6084 floor=$5136 aboveFloor=18.5%
+[2026-04-13 18:14:05] Session 6 | Check #3 | 49min remaining
+[2026-04-13 18:14:05] [S6-CHECK3] Taking state snapshot...
+  Version: 2.10.1
+  Registry: ? | Nursery: 70 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 69 | WR: 31.9%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 8 armed
+  !! GATE VIOLATION: FATOU - RE_ENTRY
+  !! GATE VIOLATION: GoutGout - RE_ENTRY
+  !! GATE VIOLATION: NEIL - SELL_PRESSURE
+  !! GATE VIOLATION: justin - RE_ENTRY
+  !! GATE VIOLATION: FMG - SELL_PRESSURE
+  !! GATE VIOLATION: WeClone - RE_ENTRY
+  !! GATE VIOLATION: CrazyFrog - HISTORY
+  FLOORED & READY: X Chat MC=$6811 floor=$6811 aboveFloor=0%
+  FLOORED & READY: Psyop MC=$23666 floor=$23331 aboveFloor=1.4%
+[2026-04-13 18:19:07] Session 6 | Check #4 | 44min remaining
+[2026-04-13 18:19:07] [S6-CHECK4] Taking state snapshot...
+  Version: 2.10.1
+  Registry: ? | Nursery: 58 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 76 | WR: 28.9%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 9 armed
+  !! GATE VIOLATION: X Chat - SELL_PRESSURE
+  !! GATE VIOLATION: GoutGout - RE_ENTRY
+  !! GATE VIOLATION: NEIL - SELL_PRESSURE
+  !! GATE VIOLATION: FMG - SELL_PRESSURE
+  !! GATE VIOLATION: PATRICK - SELL_PRESSURE
+  !! GATE VIOLATION: HENRY - SELL_PRESSURE
+  FLOORED & READY: Psyop MC=$23327 floor=$23327 aboveFloor=0%
+  FLOORED & READY: FATOU MC=$4160 floor=$4160 aboveFloor=0%
+[2026-04-13 18:24:08] Session 6 | Check #5 | 39min remaining
+[2026-04-13 18:24:08] [S6-CHECK5] Taking state snapshot...
+  Version: 2.10.1
+  Registry: ? | Nursery: 127 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 83 | WR: 32.5%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 6 armed
+  !! GATE VIOLATION: FATOU - RE_ENTRY
+  !! GATE VIOLATION: CrazyFrog - RE_ENTRY
+  !! GATE VIOLATION: Alpha - SELL_PRESSURE
+  FLOORED & READY: X Chat MC=$6434 floor=$6426 aboveFloor=0.1%
+  FLOORED & READY: Psyop MC=$22148 floor=$22132 aboveFloor=0.1%

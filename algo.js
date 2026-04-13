@@ -410,9 +410,30 @@ function closeTrade(token, mc, now, reason, log) {
     : 0;
   const lossStreak = consecutiveLosses === -1 ? recentTrades.length : consecutiveLosses;
 
+  // Token health: if WR drops below 25% after 5+ trades, slow down or stop
+  const totalTrades = token.closedTrades.length;
+  const totalWins = token.closedTrades.filter(t => t.pnlPct > 0).length;
+  const tokenWR = totalTrades > 0 ? totalWins / totalTrades : 1;
+  const isSick = totalTrades >= 5 && tokenWR < 0.25;
+
+  if (totalTrades >= 8 && tokenWR < 0.25) {
+    token.cooldownUntil = now / 1000 + 600;
+    log('TOKEN_SICK', token.symbol, token.mint, {
+      wr: +(tokenWR * 100).toFixed(0), trades: totalTrades, wins: totalWins,
+      action: 'blacklist-cooldown 10min',
+    });
+    transition(token, STATE.CLOSED, `${reason} at $${exitMc.toFixed(0)} (${pnl > 0 ? '+' : ''}${pnl.toFixed(1)}%) — token sick WR ${(tokenWR*100).toFixed(0)}%`, log);
+    log('TRADE_CLOSE', token.symbol, token.mint, {
+      tradeId: record.id, entryMc: Math.round(trade.entryMc), exitMc: Math.round(exitMc),
+      pnlPct: +pnl.toFixed(2), holdSec: +holdSec.toFixed(1), reason,
+    });
+    return { type: 'CLOSE_TRADE', token, trade: record, reason, exitMc };
+  }
+
   let baseCooldown;
-  if (isProvenNow) {
-    // Proven tokens: rapid re-arm unless bleeding
+  if (isSick) {
+    baseCooldown = 300;
+  } else if (isProvenNow) {
     baseCooldown = PROVEN_COOLDOWN_SECS;
     if (lossStreak >= 3) baseCooldown = PROVEN_LOSS_COOLDOWN;
   } else if (exitedAtFloor) {
