@@ -19,7 +19,7 @@
 import { STATE, MIN_HOLD_SECS, REENTRY_COOLDOWN_SECS,
          ARM_TIMEOUT_SECS, TRADE_FEE_PCT, POSITION_SOL,
          MAX_TRADES_PER_TOKEN, FLOOR_TOUCH_PCT,
-         FLOOR_ARM_ZONE_PCT, UNLOCK_MC_USD, STOP_LOSS_PCT,
+         FLOOR_ARM_ZONE_PCT, STOP_LOSS_PCT,
          ENTRY_MC_MIN, ROUND2_PUMP_MULT,
          JITO_ROUND2_MIN_ATH, HISTORY_MIN_TRADES } from './rules.js';
 
@@ -331,8 +331,12 @@ function closeTrade(token, mc, now, reason, log) {
   const holdSec = (now - trade.entryTs) / 1000;
 
   let exitMc = mc;
-  const worstMc = trade.entryMc * (1 - STOP_LOSS_PCT / 100);
-  if (exitMc < worstMc) exitMc = worstMc;
+  // Only apply stop-loss floor cap in real trading (limit orders protect us).
+  // In paper mode, show actual slipped exit for honest PnL.
+  if (process.env.REAL_TRADING === 'true') {
+    const worstMc = trade.entryMc * (1 - STOP_LOSS_PCT / 100);
+    if (exitMc < worstMc) exitMc = worstMc;
+  }
 
   const pnlRaw = (exitMc - trade.entryMc) / trade.entryMc * 100;
   const pnl    = pnlRaw - (TRADE_FEE_PCT * 100);

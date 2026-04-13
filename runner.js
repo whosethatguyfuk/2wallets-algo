@@ -29,6 +29,7 @@ process.on('uncaughtException',  e => console.error('⚠️  uncaughtException:'
 const PORT          = Number(process.env.PORT) || 2500;
 const REAL_TRADING  = process.env.REAL_TRADING === 'true';
 const HELIUS_KEY    = process.env.HELIUS_API_KEY;
+const AUTH_TOKEN    = process.env.API_AUTH_TOKEN || '';
 const HELIUS_RPC    = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_KEY}`;
 const PP_WS_URL     = 'wss://pumpportal.fun/api/data';
 
@@ -36,11 +37,13 @@ const PP_WS_URL     = 'wss://pumpportal.fun/api/data';
 import { makeToken, onTick, confirmBuy, forceClose, updatePrice, applyJitoBundleReset } from './algo.js';
 import { runEntryGates, floorGate } from './gates.js';
 import {
-  UNLOCK_MC_USD, QUALITY_MC_THRESHOLD, QUALITY_MAX_BUY_SOL,
+  QUALITY_MC_THRESHOLD, QUALITY_MAX_BUY_SOL,
   MAYHEM_AGENT_WALLET, STATE, POSITION_SOL, MAX_HOLD_SECS,
   NURSERY_MAX, NURSERY_PURGE_MS, NURSERY_MIN_TRADERS,
   COLD_PROMOTE_MC, JITO_SAME_SLOT_BUYS, JITO_SAME_SLOT_WALLETS,
-  MC_DIRECTION_MIN_DELTA,
+  MC_DIRECTION_MIN_DELTA, CATALYST_MIN_SOL,
+  MAX_SOL_PER_TICK, MAX_MC_CHANGE_PCT, MC_BONDING_CURVE_MAX,
+  PENDING_TIMEOUT_MS, TRADE_FEE_PCT,
   SNAPSHOT_INTERVAL_MS, RESUB_BATCH_SIZE, RESUB_BATCH_DELAY_MS,
 } from './rules.js';
 
@@ -328,10 +331,11 @@ async function promoteFromNursery(mint, nr) {
   token.sessionLow  = nr.low < Infinity ? nr.low : Infinity;
   token.currentMc   = nr.currentMc;
   token.liveTrades  = nr.trades;
-  if (nr.uniqueTraders) {
-    for (const w of nr.uniqueTraders) token.uniqueBuyers.add(w);
+  // Only copy confirmed buyers, not all traders (which includes sellers)
+  if (nr.uniqueBuyers) {
+    for (const w of nr.uniqueBuyers) token.uniqueBuyers.add(w);
   }
-  token.resolvedBuyerCount = nr.uniqueTraders?.size || 0;
+  token.resolvedBuyerCount = nr.uniqueBuyers?.size || 0;
 
   // Jito check via Helius
   const isBundled = await checkJitoBundle(token);
@@ -397,14 +401,22 @@ async function seedOldCoins() {
         const vSol = (c.virtual_sol_reserves || 0) / 1e9;
         if (vSol > 85) continue;
 
+        // Phantom MC filter: if real reserves are near zero, MC is fake
+        const realSol = (c.real_sol_reserves || 0) / 1e9;
+        if (realSol < 0.01 && (c.usd_market_cap || 0) > 10_000) continue;
+
         const athMc = c.ath_market_cap || c.usd_market_cap || 0;
         if (athMc < 8_000) continue;
 
-        const ageMs = Date.now() - (c.created_timestamp || 0);
+        // Normalize timestamps: pump.fun uses ms for created_timestamp, ms for last_trade_timestamp
+        const createdTs = c.created_timestamp || 0;
+        const lastTradeTs = c.last_trade_timestamp || 0;
+        // Both are in ms from pump.fun API
+        const ageMs = Date.now() - createdTs;
         if (ageMs < 10 * 60_000) continue;
 
-        const lastTradeMs = Date.now() - ((c.last_trade_timestamp || 0) * 1000);
-        if (lastTradeMs > 6 * 60 * 60_000) continue;
+        const lastTradeAgeMs = Date.now() - lastTradeTs;
+        if (lastTradeAgeMs > 6 * 60 * 60_000) continue;
 
         const token = await ensureToken(mint, c.symbol || mint.slice(0,6), c.name || '', 'old');
         token.isSeeded = true;
@@ -466,7 +478,7 @@ async function handleEvent(event) {
     if (!REAL_TRADING) {
       const slippageTicks = 1 + Math.floor(Math.random() * 3); // 1-3 ticks delay
       log('SLIPPAGE_QUEUE_BUY', token.symbol, token.mint, { triggerMc: Math.round(mc), delayTicks: slippageTicks });
-      pendingBuys.set(token.mint, { token, triggerMc: mc, ticksLeft: slippageTicks });
+      pendingBuys.set(token.mint, { token, triggerMc: mc, ticksLeft: slippageTicks, queuedAt: Date.now() });
       return;
     }
 
@@ -490,18 +502,17 @@ async function handleEvent(event) {
     if (!REAL_TRADING && trade) {
       const slippageTicks = 1 + Math.floor(Math.random() * 3); // 1-3 ticks delay
       log('SLIPPAGE_QUEUE_SELL', token.symbol, token.mint, { triggerExitMc: Math.round(exitMc), reason, delayTicks: slippageTicks });
-      pendingSells.set(token.mint, { token, trade, reason, triggerExitMc: exitMc, ticksLeft: slippageTicks });
+      pendingSells.set(token.mint, { token, trade, reason, triggerExitMc: exitMc, ticksLeft: slippageTicks, queuedAt: Date.now() });
       return;
     }
 
     openCount = Math.max(0, openCount - 1);
 
     if (trade) {
-      const pnl = trade.pnlPct;
+      const pnl = trade.pnlPct;  // already includes TRADE_FEE_PCT deduction from closeTrade
       if (pnl > 0) { totalWins++; netPnlSol += POSITION_SOL * (pnl / 100); }
       else          { totalLosses++; netPnlSol += POSITION_SOL * (pnl / 100); }
-      netPnlSol -= POSITION_SOL * 0.005;
-      totalFeesSol += POSITION_SOL * 0.005;
+      totalFeesSol += POSITION_SOL * TRADE_FEE_PCT;
     }
 
     broadcast({ type: 'sell', mint: token.mint, symbol: token.symbol,
@@ -581,6 +592,7 @@ function connectPP() {
         birthTs: Date.now(), lastTradeTs: Date.now(),
         trades: 0, buySol: 0,
         uniqueTraders: new Set(),
+        uniqueBuyers: new Set(),
       });
 
       ppWs.send(JSON.stringify({ method: 'subscribeTokenTrade', keys: [mint] }));
@@ -592,10 +604,18 @@ function connectPP() {
     if (!mint) return;
 
     const rawIsBuy   = msg.txType === 'buy';
-    const sol        = msg.solAmount || 0;
-    const mcSol      = msg.marketCapSol || 0;
+    let   sol        = Number(msg.solAmount) || 0;
+    const mcSol      = Number(msg.marketCapSol) || 0;
     const mc         = mcSol * solPrice;
     if (mc <= 0) return;
+
+    // ── Data bounds: reject garbage ticks ────────────────────
+    if (sol < 0) sol = 0;
+    if (sol > MAX_SOL_PER_TICK) {
+      log('BOUNDS_REJECT', msg.symbol || mint.slice(0,6), mint, { reason: 'solAmount', sol, max: MAX_SOL_PER_TICK });
+      sol = 0;  // still process the tick for MC tracking, but zero out the SOL
+    }
+    if (mc > MC_BONDING_CURVE_MAX) return;  // impossible on bonding curve
 
     // ── Nursery token tick ──────────────────────────────────────
     if (nursery.has(mint)) {
@@ -605,7 +625,10 @@ function connectPP() {
       nr.trades++;
       if (mc > nr.ath) nr.ath = mc;
       if (mc < nr.low && mc > 0) nr.low = mc;
-      if (rawIsBuy) nr.buySol += sol;
+      if (rawIsBuy) {
+        nr.buySol += sol;
+        if (msg.traderPublicKey) nr.uniqueBuyers.add(msg.traderPublicKey);
+      }
       if (msg.traderPublicKey) nr.uniqueTraders.add(msg.traderPublicKey);
       return;
     }
@@ -630,9 +653,18 @@ function connectPP() {
       ppWs.send(JSON.stringify({ method: 'subscribeTokenTrade', keys: [mint] }));
     }
 
-    // MC direction correction
+    // MC spike rejection: if MC changes >50% in one tick and we have prior data, skip
+    if (token.prevMcSol > 0 && token.liveTrades > 3) {
+      const spike = Math.abs(mcSol - token.prevMcSol) / token.prevMcSol;
+      if (spike > MAX_MC_CHANGE_PCT) {
+        log('BOUNDS_REJECT', token.symbol, mint, { reason: 'mc_spike', prevMcSol: token.prevMcSol, mcSol, spike: (spike*100).toFixed(1)+'%' });
+        return;
+      }
+    }
+
+    // MC direction correction — but NOT for catalyst-sized buys (preserve raw txType for catalyst gate)
     let isBuy = rawIsBuy;
-    if (token.prevMcSol > 0) {
+    if (token.prevMcSol > 0 && sol < CATALYST_MIN_SOL) {
       const mcDelta = (mcSol - token.prevMcSol) / token.prevMcSol;
       if (Math.abs(mcDelta) > MC_DIRECTION_MIN_DELTA) {
         const mcSaysBuy = mcDelta > 0;
@@ -670,8 +702,6 @@ function connectPP() {
         const trade = confirmBuy(pb.token, slippedMc, 'paper_' + Date.now(), 0, log);
         if (trade) {
           pb.token.proven = true;
-          netPnlSol -= POSITION_SOL * 0.005;
-          totalFeesSol += POSITION_SOL * 0.005;
           broadcast({ type: 'buy', mint, symbol: pb.token.symbol, mc: Math.round(slippedMc), jito: pb.token.jitoBundle, slipPct });
         } else { openCount = Math.max(0, openCount - 1); }
       }
@@ -686,11 +716,10 @@ function connectPP() {
         log('SLIPPAGE_SELL', ps.token.symbol, mint, { triggerExitMc: Math.round(ps.triggerExitMc), fillExitMc: Math.round(slippedExitMc), slipPct, reason: ps.reason });
         openCount = Math.max(0, openCount - 1);
         const pnlRaw = (slippedExitMc - ps.trade.entryMc) / ps.trade.entryMc * 100;
-        const pnl = pnlRaw - 1;
+        const pnl = pnlRaw - (TRADE_FEE_PCT * 100);
         if (pnl > 0) { totalWins++; netPnlSol += POSITION_SOL * (pnl / 100); }
         else          { totalLosses++; netPnlSol += POSITION_SOL * (pnl / 100); }
-        netPnlSol -= POSITION_SOL * 0.005;
-        totalFeesSol += POSITION_SOL * 0.005;
+        totalFeesSol += POSITION_SOL * TRADE_FEE_PCT;
         broadcast({ type: 'sell', mint, symbol: ps.token.symbol, pnl: pnl.toFixed(2), reason: ps.reason, exitMc: Math.round(slippedExitMc), slipPct });
       }
     }
@@ -767,7 +796,7 @@ function saveSnapshot() {
 
     const nurSnap = {};
     for (const [mint, nr] of nursery) {
-      nurSnap[mint] = { ...nr, uniqueTraders: [...(nr.uniqueTraders || [])] };
+      nurSnap[mint] = { ...nr, uniqueTraders: [...(nr.uniqueTraders || [])], uniqueBuyers: [...(nr.uniqueBuyers || [])] };
     }
     fs.writeFileSync(NURSERY_FILE, JSON.stringify(nurSnap));
 
@@ -829,6 +858,7 @@ function loadSnapshot() {
         nursery.set(mint, {
           ...snap,
           uniqueTraders: new Set(snap.uniqueTraders || []),
+          uniqueBuyers: new Set(snap.uniqueBuyers || []),
         });
       }
       console.log(`🌱 Nursery restored: ${nursery.size} tokens`);
@@ -849,6 +879,14 @@ function loadSnapshot() {
 // ── Express server ───────────────────────────────────────────────
 const app    = express();
 const server = createServer(app);
+
+app.use('/api', (req, res, next) => {
+  if (!AUTH_TOKEN) return next();
+  const bearer = (req.headers.authorization || '').replace('Bearer ', '');
+  const query  = req.query.token;
+  if (bearer === AUTH_TOKEN || query === AUTH_TOKEN) return next();
+  res.status(401).json({ error: 'unauthorized' });
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -1036,7 +1074,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '2.2.0',
+    version:    '2.3.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,
@@ -1069,6 +1107,7 @@ app.get('/api/registry', (_req, res) => {
     liveTrades: t.liveTrades || 0, isSeeded: t.isSeeded || false,
     jitoBundle: t.jitoBundle, bundlePeakMc: Math.round(t.bundlePeakMc || 0),
     lastTick: t.lastTickTs ? Math.round((Date.now() - t.lastTickTs) / 1000) + 's ago' : 'never',
+    lastTickTs: t.lastTickTs || 0,
   })).sort((a, b) => b.ath - a.ath);
   res.json(all);
 });
@@ -1315,6 +1354,28 @@ setInterval(() => {
 // ── Watchdog: force-close zombie trades ──────────────────────────
 function runWatchdog() {
   watchdogRuns++;
+
+  // Timeout stale pending buys/sells (prevent permanent openCount leak)
+  const now = Date.now();
+  for (const [mint, pb] of pendingBuys) {
+    if (!pb.queuedAt) pb.queuedAt = now;
+    if (now - pb.queuedAt > PENDING_TIMEOUT_MS) {
+      pendingBuys.delete(mint);
+      openCount = Math.max(0, openCount - 1);
+      log('PENDING_TIMEOUT', pb.token.symbol, mint, { type: 'buy', ageMs: now - pb.queuedAt });
+      watchdogKills++;
+    }
+  }
+  for (const [mint, ps] of pendingSells) {
+    if (!ps.queuedAt) ps.queuedAt = now;
+    if (now - ps.queuedAt > PENDING_TIMEOUT_MS) {
+      pendingSells.delete(mint);
+      openCount = Math.max(0, openCount - 1);
+      log('PENDING_TIMEOUT', ps.token.symbol, mint, { type: 'sell', ageMs: now - ps.queuedAt });
+      watchdogKills++;
+    }
+  }
+
   for (const [, token] of registry) {
     if (token.state !== STATE.HOLDING && token.state !== STATE.EXIT_UNLOCKED) continue;
     const trade = token.activeTrade;
@@ -1375,7 +1436,7 @@ async function refreshStaleTokens() {
 
   if (toRefresh.length === 0) return;
 
-  let refreshed = 0, migrated = 0, removed = 0;
+  let refreshed = 0, migrated = 0, removed = 0, phantomRemoved = 0;
   for (const mint of toRefresh) {
     const token = registry.get(mint);
     if (!token) continue;
@@ -1404,9 +1465,18 @@ async function refreshStaleTokens() {
         continue;
       }
 
+      // Phantom MC filter: real_sol_reserves near zero means MC is fake
+      const realSolReserves = (d.real_sol_reserves || 0) / 1e9;
+      if (realSolReserves < 0.01 && (d.usd_market_cap || 0) > 10_000) {
+        log('PHANTOM_MC', token.symbol, mint, { mc: d.usd_market_cap, realSol: realSolReserves });
+        registry.delete(mint);
+        removed++;
+        continue;
+      }
+
       // Update MC from API
       const realMc = d.usd_market_cap || 0;
-      if (realMc > 0) {
+      if (realMc > 0 && realMc <= MC_BONDING_CURVE_MAX) {
         const oldMc = token.currentMc;
         token.currentMc = realMc;
         token.lastTickTs = now;

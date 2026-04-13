@@ -7,7 +7,6 @@
  */
 
 // ── Discovery ────────────────────────────────────────────────────
-export const UNLOCK_MC_USD        = 8_000;    // token must have crossed $8K MC to be eligible for arming
 export const ENTRY_MC_MIN         = 4_000;    // pump.fun floors are ~$4.2K
 export const ENTRY_MC_MAX         = 50_000;   // never enter above $50K
 export const MAX_POOL_SOL         = 120;      // skip tokens with >120 SOL in bonding curve
@@ -19,13 +18,14 @@ export const NURSERY_MIN_TRADERS  = 7;        // dead = < 7 unique traders after
 export const COLD_PROMOTE_MC      = 5_000;    // re-promote cold-watch token if MC crosses this
 
 // ── Jito bundle detection (same-slot method) ────────────────────
-export const JITO_SAME_SLOT_BUYS  = 3;        // 3+ buys in the create slot = bundle
-export const JITO_SAME_SLOT_WALLETS = 2;      // from 2+ different wallets
+export const JITO_SAME_SLOT_BUYS  = 5;        // 5+ buys in the create slot = bundle
+export const JITO_SAME_SLOT_WALLETS = 3;      // from 3+ different wallets
 export const JITO_ROUND2_MIN_ATH  = 10_000;   // bundled + ATH < $10K = blacklist (not worth round 2)
 export const ROUND2_PUMP_MULT     = 2.0;      // round-2: sessionHigh must be > floor × 2.0 to arm
 
 // ── Token quality ───────────────────────────────────────────────
-export const QUALITY_MIN_BUYERS   = 5;        // 5+ unique buyers required
+export const QUALITY_MIN_BUYERS   = 5;        // 5+ unique buyers required (new tokens)
+export const QUALITY_MIN_BUYERS_OLD = 3;      // 3+ unique buyers required (old/seeded tokens)
 export const QUALITY_MAX_BUY_SOL  = 1.6;      // no single buy >1.6 SOL while MC <$5K (whale filter)
 export const QUALITY_MC_THRESHOLD = 5_000;     // above this MC, large buys are fine
 
@@ -34,8 +34,8 @@ export const HISTORY_MIN_TRADES   = 10;       // minimum trades needed to establ
 
 // ── Floor detection ─────────────────────────────────────────────
 export const FLOOR_ARM_ZONE_PCT   = 0.15;     // arm when within 15% above session low
-export const FLOOR_MIN_TOUCHES    = 2;        // floor must have been tested 2+ times
-export const FLOOR_TOUCH_PCT      = 0.08;     // ±8% = "touching the same level"
+export const FLOOR_MIN_TOUCHES    = 3;        // floor must have been tested 3+ times
+export const FLOOR_TOUCH_PCT      = 0.06;     // ±6% = "touching the same level"
 
 // ── Arm → Catalyst ──────────────────────────────────────────────
 export const CATALYST_MIN_SOL     = 0.20;     // minimum SOL buy to trigger entry
@@ -68,12 +68,18 @@ export const MAYHEM_AGENT_WALLET  = "BwWK17cbHxwWBKZkUYvzxLcNQ1YVyaFezduWbtm2de6
 export const MC_DIRECTION_MIN_DELTA = 0.005;  // only override PP txType if MC moved >0.5%
 
 // ── Persistence ─────────────────────────────────────────────────
+export const PENDING_TIMEOUT_MS   = 30_000;   // cancel pending slippage buys/sells after 30s
 export const SNAPSHOT_INTERVAL_MS = 60_000;   // save state every 60s
 export const RESUB_BATCH_SIZE     = 50;       // re-subscribe in batches on restart
 export const RESUB_BATCH_DELAY_MS = 500;      // delay between batches
 
 // ── Fees ────────────────────────────────────────────────────────
-export const TRADE_FEE_PCT        = 0.01;     // ~1% round trip
+export const TRADE_FEE_PCT        = 0.02;     // ~2% round trip (1% per side on pump.fun)
+
+// ── Data bounds ─────────────────────────────────────────────────
+export const MAX_SOL_PER_TICK     = 50;       // reject PP ticks with solAmount > 50 SOL
+export const MAX_MC_CHANGE_PCT    = 0.50;     // reject ticks where MC moves >50% in one tick (unless first few)
+export const MC_BONDING_CURVE_MAX = 120_000;  // max possible MC on bonding curve (pre-migration)
 
 // ── Token states ────────────────────────────────────────────────
 export const STATE = Object.freeze({

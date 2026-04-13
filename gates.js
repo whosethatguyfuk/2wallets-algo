@@ -10,8 +10,8 @@
  */
 
 import {
-  UNLOCK_MC_USD, ENTRY_MC_MIN, ENTRY_MC_MAX, MAX_POOL_SOL,
-  QUALITY_MIN_BUYERS, QUALITY_MAX_BUY_SOL, QUALITY_MC_THRESHOLD,
+  ENTRY_MC_MIN, ENTRY_MC_MAX, MAX_POOL_SOL,
+  QUALITY_MIN_BUYERS, QUALITY_MIN_BUYERS_OLD, QUALITY_MAX_BUY_SOL, QUALITY_MC_THRESHOLD,
   HISTORY_MIN_TRADES,
   FLOOR_ARM_ZONE_PCT, FLOOR_MIN_TOUCHES, FLOOR_TOUCH_PCT,
   CATALYST_MIN_SOL,
@@ -63,8 +63,16 @@ export function qualityGate(token) {
     return pass(`quality ok (${buyerCount} buyers)${r2}`);
   }
 
+  // Old/seeded tokens still need a minimum buyer count
+  const buyerCount = Math.max(
+    token.uniqueBuyers?.size ?? 0,
+    token.resolvedBuyerCount ?? 0
+  );
+  if (buyerCount < QUALITY_MIN_BUYERS_OLD)
+    return fail(`only ${buyerCount} unique buyers on old pair, need ${QUALITY_MIN_BUYERS_OLD}`);
+
   const r2 = token.jitoBundle ? ' [jito-bundle, round-2]' : '';
-  return pass(`quality ok (${token.category} pair)${r2}`);
+  return pass(`quality ok (${token.category} pair, ${buyerCount} buyers)${r2}`);
 }
 
 // ── GATE 3: Floor Gate ───────────────────────────────────────────
