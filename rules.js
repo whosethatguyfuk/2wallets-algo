@@ -34,7 +34,7 @@ export const HISTORY_MIN_TRADES   = 10;       // minimum trades needed to establ
 
 // ── Floor detection ─────────────────────────────────────────────
 export const FLOOR_ARM_ZONE_PCT   = 0.15;     // arm when within 15% above session low
-export const FLOOR_MIN_TOUCHES    = 3;        // floor must have been tested 3+ times
+export const FLOOR_MIN_TOUCHES    = 2;        // floor must have been tested 2+ times
 export const FLOOR_TOUCH_PCT      = 0.06;     // ±6% = "touching the same level"
 
 // ── Arm → Catalyst ──────────────────────────────────────────────

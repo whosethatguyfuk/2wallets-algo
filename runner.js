@@ -345,7 +345,8 @@ async function promoteFromNursery(mint, nr) {
 
   // We have live data from birth — mark history as loaded
   token.historyLoaded = true;
-  token.historyTrades = 0;
+  token.historyTrades = nr.trades;
+  token.isNurseryGrad = true;
 
   // Fetch ATH from pump.fun API to supplement our observation
   try {
@@ -362,11 +363,9 @@ async function promoteFromNursery(mint, nr) {
     }
   } catch {}
 
-  // Kick state machine — advance past WATCHING if ready
-  if (token.liveTrades >= 10) {
-    const event = onTick(token, token.currentMc || 4200, Date.now(), false, 0, openCount, false, log);
-    handleEvent(event).catch(() => {});
-  }
+  // Kick state machine — nursery grads have complete data, always advance
+  const event = onTick(token, token.currentMc || 4200, Date.now(), false, 0, openCount, false, log);
+  if (event) handleEvent(event).catch(() => {});
 
   return token;
 }
@@ -1074,7 +1073,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '2.3.0',
+    version:    '2.4.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,

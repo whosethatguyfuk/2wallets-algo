@@ -64,6 +64,9 @@ export function makeToken(mint, symbol, name, category) {
     // Arm
     armedAt:         0,
 
+    // Nursery graduate — we have complete data from birth
+    isNurseryGrad:   false,
+
     // Proven flag — never prune if true
     proven:          false,
 
@@ -190,7 +193,7 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     token.liveTrades = (token.liveTrades || 0) + 1;
 
     const totalKnown = (token.historyTrades || 0) + (token.liveTrades || 0);
-    const minTrades  = token.isSeeded ? 3 : 10;
+    const minTrades  = (token.isSeeded || token.isNurseryGrad) ? 3 : 10;
     if (token.historyLoaded && totalKnown >= minTrades) {
       transition(token, STATE.INDEXED, `ready (hist:${token.historyTrades} live:${token.liveTrades})`, log);
     }
@@ -228,9 +231,11 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
       if (!round2Ready) return null;
     }
 
-    // Pre-arm history check: must meet trade threshold before arming
-    const totalKnownArm = (token.historyTrades || 0) + (token.liveTrades || 0);
-    if (totalKnownArm < HISTORY_MIN_TRADES) return null;
+    // Pre-arm history check: nursery grads have complete data from birth
+    if (!token.isNurseryGrad) {
+      const totalKnownArm = (token.historyTrades || 0) + (token.liveTrades || 0);
+      if (totalKnownArm < HISTORY_MIN_TRADES) return null;
+    }
 
     if (aboveFloor <= FLOOR_ARM_ZONE_PCT && mc > floor * 0.85 && hasRealPump && mc >= ENTRY_MC_MIN) {
       token.armedAt = nowSec;
