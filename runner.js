@@ -806,6 +806,172 @@ const server = createServer(app);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/', (_req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2Wallets Algo v2.0</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0e0e0;font-family:'SF Mono','Fira Code',monospace;font-size:13px}
+.header{padding:16px 24px;border-bottom:1px solid #1e1e2e;display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:18px;font-weight:600;color:#f0f0f0}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+.dot.on{background:#4ade80}.dot.off{background:#ef4444}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;padding:16px 24px}
+.card{background:#12121a;border:1px solid #1e1e2e;border-radius:8px;padding:14px 16px}
+.card .label{color:#666;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
+.card .value{font-size:22px;font-weight:700;margin-top:4px;color:#f0f0f0}
+.card .value.green{color:#4ade80}.card .value.red{color:#f87171}.card .value.blue{color:#60a5fa}.card .value.yellow{color:#fbbf24}
+.tabs{display:flex;gap:0;padding:0 24px;border-bottom:1px solid #1e1e2e;margin-top:8px}
+.tab{padding:10px 20px;cursor:pointer;color:#666;border-bottom:2px solid transparent;transition:all .15s}
+.tab:hover{color:#aaa}.tab.active{color:#7dd3fc;border-bottom-color:#7dd3fc}
+.panel{padding:16px 24px;display:none}.panel.active{display:block}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;color:#555;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;padding:8px 10px;border-bottom:1px solid #1e1e2e}
+td{padding:7px 10px;border-bottom:1px solid #0e0e16;white-space:nowrap}
+tr:hover{background:#15151f}
+.mint{cursor:pointer;color:#7dd3fc;font-size:12px}.mint:hover{text-decoration:underline}
+.badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600}
+.badge.armed{background:#422006;color:#fbbf24}.badge.floored{background:#1a2332;color:#60a5fa}
+.badge.indexed{background:#1a1a2e;color:#a78bfa}.badge.watching{background:#111;color:#666}
+.badge.holding,.badge.exit_unlocked{background:#052e16;color:#4ade80}
+.badge.closed{background:#1a1a1a;color:#888}.badge.blacklisted{background:#2a0a0a;color:#f87171}
+.badge.jito{background:#3b0764;color:#c084fc;margin-left:4px}
+.pnl-pos{color:#4ade80;font-weight:600}.pnl-neg{color:#f87171;font-weight:600}
+.stale{color:#444}.empty{color:#444;padding:30px;text-align:center}
+.sse-log{max-height:340px;overflow-y:auto;background:#08080c;border:1px solid #1e1e2e;border-radius:8px;padding:12px;font-size:12px;line-height:1.7}
+.sse-buy{color:#4ade80}.sse-sell{color:#f87171}.sse-arm{color:#fbbf24}.sse-disarm{color:#666}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>2Wallets Algo</h1><span style="color:#888;font-size:12px" id="ver">v2.0.0</span></div>
+  <div style="display:flex;gap:12px;align-items:center">
+    <span><span class="dot" id="ppDot"></span>PumpPortal</span>
+    <span id="modeLabel"></span>
+  </div>
+</div>
+<div class="grid" id="statsGrid"></div>
+<div class="tabs">
+  <div class="tab active" data-tab="registry">Registry</div>
+  <div class="tab" data-tab="nursery">Nursery 🌱</div>
+  <div class="tab" data-tab="trades">Closed Trades</div>
+  <div class="tab" data-tab="live">Live Feed</div>
+</div>
+<div class="panel active" id="panel-registry"></div>
+<div class="panel" id="panel-nursery"></div>
+<div class="panel" id="panel-trades"></div>
+<div class="panel" id="panel-live"><div class="sse-log" id="sseLog"><div style="color:#444">Waiting for events...</div></div></div>
+<div style="color:#444;font-size:11px;padding:4px 24px">Auto-refreshes every 5s</div>
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+function copyMint(mint){navigator.clipboard.writeText(mint).then(()=>{const el=document.querySelector('[data-mint="'+mint+'"]');if(el){const o=el.textContent;el.textContent='copied!';setTimeout(()=>el.textContent=o,800)}});}
+function fmtMc(n){return n>=1000?(n/1000).toFixed(1)+'K':Math.round(n)}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function badge(s,jito){const cls=s.toLowerCase().replace('exit_unlocked','holding');let b='<span class="badge '+cls+'">'+s+'</span>';if(jito)b+='<span class="badge jito">JITO</span>';return b}
+
+async function loadStats(){
+  try{
+    const d=await(await fetch('/api/stats')).json();
+    $('#ver').textContent=d.version||'?';
+    $('#ppDot').className='dot '+(d.ppConnected?'on':'off');
+    $('#modeLabel').innerHTML=d.realTrading?'<span style="color:#f87171;font-weight:700">REAL</span>':'<span style="color:#4ade80">PAPER</span>';
+    const pnlCls=d.netPnlSol>=0?'green':'red';
+    const wr=d.trades>0?(d.wins/d.trades*100).toFixed(0)+'%':'—';
+    const cards=[
+      {label:'Net PnL',value:(d.netPnlSol>=0?'+':'')+d.netPnlSol.toFixed(4)+' SOL',cls:pnlCls},
+      {label:'Trades',value:d.trades,cls:''},
+      {label:'Win Rate',value:wr,cls:d.winRate>=50?'green':d.trades>0?'red':''},
+      {label:'Open',value:d.open,cls:d.open>0?'yellow':''},
+      {label:'Armed',value:d.armed,cls:d.armed>0?'yellow':''},
+      {label:'Registry',value:d.tokens,cls:'blue'},
+      {label:'Nursery',value:d.nurserySize,cls:''},
+      {label:'Cold Watch',value:d.coldWatchSize??0,cls:''},
+      {label:'Born Total',value:d.nurseryTotal??0,cls:''},
+      {label:'Watchdog',value:(d.watchdogKills||0)+'/'+(d.watchdogRuns||0),cls:''},
+    ];
+    $('#statsGrid').innerHTML=cards.map(c=>'<div class="card"><div class="label">'+c.label+'</div><div class="value '+c.cls+'">'+c.value+'</div></div>').join('');
+  }catch(e){}
+}
+
+async function loadRegistry(){
+  try{
+    const list=await(await fetch('/api/registry')).json();
+    if(!list.length){$('#panel-registry').innerHTML='<div class="empty">No tokens in registry yet</div>';return}
+    let h='<table><thead><tr><th>Token</th><th>CA</th><th>State</th><th>MC</th><th>ATH</th><th>Floor</th><th>Buyers</th><th>Hist</th><th>Live</th><th>Last Tick</th></tr></thead><tbody>';
+    for(const t of list){h+='<tr><td><b>'+esc(t.symbol)+'</b></td><td><span class="mint" data-mint="'+t.mint+'" onclick="copyMint(\''+t.mint+'\')">'+t.mint.slice(0,6)+'…'+t.mint.slice(-4)+'</span></td><td>'+badge(t.state,t.jitoBundle)+'</td><td>$'+fmtMc(t.mc)+'</td><td>$'+fmtMc(t.ath)+'</td><td>'+(t.floor?'$'+fmtMc(t.floor):'—')+'</td><td>'+t.buyers+'</td><td>'+(t.histLoaded?t.histTrades:'<span class="stale">…</span>')+'</td><td>'+t.liveTrades+'</td><td class="stale">'+(t.lastTick||'—')+'</td></tr>'}
+    $('#panel-registry').innerHTML=h+'</tbody></table>';
+  }catch(e){}
+}
+
+async function loadNursery(){
+  try{
+    const list=await(await fetch('/api/nursery')).json();
+    if(!list.length){$('#panel-nursery').innerHTML='<div class="empty">Nursery is empty</div>';return}
+    let h='<table><thead><tr><th>Token</th><th>CA</th><th>MC</th><th>ATH</th><th>Trades</th><th>Traders</th><th>Age</th></tr></thead><tbody>';
+    for(const n of list){h+='<tr><td><b>'+esc(n.symbol)+'</b></td><td><span class="mint" data-mint="'+n.mint+'" onclick="copyMint(\''+n.mint+'\')">'+n.mint.slice(0,6)+'…'+n.mint.slice(-4)+'</span></td><td>$'+fmtMc(n.mc)+'</td><td>$'+fmtMc(n.ath)+'</td><td>'+n.trades+'</td><td>'+n.traders+'</td><td>'+n.ageSec+'s</td></tr>'}
+    $('#panel-nursery').innerHTML=h+'</tbody></table>';
+  }catch(e){}
+}
+
+async function loadTrades(){
+  try{
+    const list=await(await fetch('/api/closed')).json();
+    if(!list.length){$('#panel-trades').innerHTML='<div class="empty">No closed trades yet</div>';return}
+    let h='<table><thead><tr><th>Token</th><th>CA</th><th>Entry</th><th>Exit</th><th>PnL</th><th>Hold</th><th>Reason</th></tr></thead><tbody>';
+    for(const t of list){const cls=t.pnlPct>=0?'pnl-pos':'pnl-neg';h+='<tr><td><b>'+esc(t.symbol)+'</b>'+(t.jito?'<span class="badge jito">JITO</span>':'')+'</td><td><span class="mint" data-mint="'+t.mint+'" onclick="copyMint(\''+t.mint+'\')">'+t.mint.slice(0,6)+'…'+t.mint.slice(-4)+'</span></td><td>$'+fmtMc(t.entryMc)+'</td><td>$'+fmtMc(t.exitMc)+'</td><td class="'+cls+'">'+(t.pnlPct>=0?'+':'')+t.pnlPct+'%</td><td>'+t.holdSec+'s</td><td>'+t.reason+'</td></tr>'}
+    $('#panel-trades').innerHTML=h+'</tbody></table>';
+  }catch(e){}
+}
+
+$$('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    $$('.tab').forEach(t=>t.classList.remove('active'));
+    $$('.panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+const sse=new EventSource('/api/sse');
+const sseLog=$('#sseLog');
+sse.onmessage=(e)=>{
+  try{
+    const d=JSON.parse(e.data);
+    let cls='',txt='';
+    if(d.type==='buy'){cls='sse-buy';txt='BUY  '+d.symbol+' at $'+fmtMc(d.mc)+(d.jito?' [JITO R2]':'')}
+    if(d.type==='sell'){cls='sse-sell';txt='SELL '+d.symbol+' → '+(d.pnl||'?')+'% ('+d.reason+')'}
+    if(d.type==='arm'){cls='sse-arm';txt='ARM  '+d.symbol+' at $'+fmtMc(d.mc)}
+    if(d.type==='disarm'){cls='sse-disarm';txt='DISARM '+d.symbol}
+    if(txt){
+      const ts=new Date().toLocaleTimeString();
+      const line=document.createElement('div');
+      line.className='sse-line '+cls;
+      line.textContent='['+ts+'] '+txt;
+      sseLog.prepend(line);
+      while(sseLog.children.length>200)sseLog.lastChild.remove();
+    }
+  }catch{}
+};
+
+function refresh(){
+  loadStats();
+  const t=$('.tab.active')?.dataset.tab;
+  if(t==='registry')loadRegistry();
+  if(t==='nursery')loadNursery();
+  if(t==='trades')loadTrades();
+}
+refresh();
+setInterval(refresh,5000);
+</script>
+</body>
+</html>`);
+});
+
 app.get('/api/stats', (_req, res) => {
   const tokens = [...registry.values()];
   const byState = {};
