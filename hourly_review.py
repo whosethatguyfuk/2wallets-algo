@@ -109,24 +109,30 @@ def run_review():
                 if mint and mint not in all_market:
                     all_market[mint] = c
 
-    # Filter to coins with real activity (ATH > $15K = had a real pump)
+    # Filter to RECENT coins with real activity
     significant_coins = {}
     bonded_coins = {}
+    now_ms = time.time() * 1000
     for mint, c in all_market.items():
         ath = c.get("ath_market_cap", 0)
         mc = c.get("usd_market_cap", 0)
         complete = c.get("complete", False)
         raydium = c.get("raydium_pool")
         real_sol = (c.get("real_sol_reserves") or 0) / 1e9
+        created = c.get("created_timestamp", 0)
 
         # Skip phantom MC
         if not complete and not raydium and real_sol < 0.01 and mc > 10_000:
             continue
 
+        # Only count tokens created in last 3 hours as relevant
+        age_min = (now_ms - created) / 60_000 if created > 0 else 999999
+        is_recent = age_min < 180
+
         if complete or raydium:
             bonded_coins[mint] = c
 
-        if ath >= 15_000:
+        if ath >= 15_000 and is_recent:
             significant_coins[mint] = c
 
     print(f"    Found {len(all_market)} total coins | {len(bonded_coins)} bonded | {len(significant_coins)} significant (ATH>$15K)")

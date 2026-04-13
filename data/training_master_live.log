@@ -64,3 +64,327 @@
   FLOORED & READY: trumpmemes MC=$14510 floor=$14170 aboveFloor=2.4%
   FLOORED & READY: defi MC=$12917 floor=$12360 aboveFloor=4.5%
   FLOORED & READY: PATRICK MC=$8726 floor=$8012 aboveFloor=8.9%
+[2026-04-13 13:21:19] Session 1 | Check #5 | 39min remaining
+[2026-04-13 13:21:19] [S1-CHECK5] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 28 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 1 | WR: 0%
+  States: {}
+  Blocked→Armed pipeline: 2 tokens blocked | 0 armed
+  FLOORED & READY: 💋 MC=$13331 floor=$12239 aboveFloor=8.9%
+[2026-04-13 13:26:19] Session 1 | Check #6 | 34min remaining
+[2026-04-13 13:26:19] [S1-CHECK6] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 61 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 10 | WR: 40%
+  States: {}
+  Blocked→Armed pipeline: 22 tokens blocked | 4 armed
+  !! GATE VIOLATION: BULLINA - RE_ENTRY
+  !! GATE VIOLATION: 💋 - SELL_PRESSURE
+  !! GATE VIOLATION: PENGUIN - HISTORY
+  !! GATE VIOLATION: Together - SELL_PRESSURE
+  FLOORED & READY: UPRIL MC=$5741 floor=$5645 aboveFloor=1.7%
+  FLOORED & READY: VOICEBOX MC=$8674 floor=$6356 aboveFloor=36.5%
+  FLOORED & READY: ONE MC=$8552 floor=$8493 aboveFloor=0.7%
+[2026-04-13 13:31:20] Session 1 | Check #7 | 29min remaining
+[2026-04-13 13:31:20] [S1-CHECK7] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 54 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 13 | WR: 46.2%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 2 armed
+  !! GATE VIOLATION: HANGHANG - SELL_PRESSURE
+  FLOORED & READY: UPRIL MC=$5745 floor=$5645 aboveFloor=1.8%
+  FLOORED & READY: BULLINA MC=$19959 floor=$9792 aboveFloor=103.8%
+  FLOORED & READY: HailMary  MC=$6305 floor=$6305 aboveFloor=0%
+  FLOORED & READY: trumpmemes MC=$7658 floor=$4376 aboveFloor=75%
+  FLOORED & READY: ONE MC=$9066 floor=$8493 aboveFloor=6.7%
+  FLOORED & READY: OILLESS MC=$8624 floor=$8616 aboveFloor=0.1%
+  FLOORED & READY: CrazyFrog MC=$16690 floor=$8296 aboveFloor=101.2%
+  FLOORED & READY: PENGUIN MC=$5143 floor=$4161 aboveFloor=23.6%
+  FLOORED & READY: Rudi MC=$19850 floor=$10558 aboveFloor=88%
+  FLOORED & READY: Together MC=$6536 floor=$4824 aboveFloor=35.5%
+[2026-04-13 13:36:22] Session 1 | Check #8 | 24min remaining
+[2026-04-13 13:36:22] [S1-CHECK8] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 53 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 13 | WR: 46.2%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 1 armed
+  FLOORED & READY: UPRIL MC=$5780 floor=$5645 aboveFloor=2.4%
+  FLOORED & READY: BULLINA MC=$19818 floor=$9792 aboveFloor=102.4%
+  FLOORED & READY: HailMary  MC=$6297 floor=$6297 aboveFloor=0%
+  FLOORED & READY: trumpmemes MC=$8635 floor=$4376 aboveFloor=97.3%
+  FLOORED & READY: OILLESS MC=$8614 floor=$8614 aboveFloor=0%
+  FLOORED & READY: CrazyFrog MC=$14104 floor=$8296 aboveFloor=70%
+  FLOORED & READY: PENGUIN MC=$5779 floor=$4161 aboveFloor=38.9%
+  FLOORED & READY: Rudi MC=$23237 floor=$10558 aboveFloor=120.1%
+  FLOORED & READY: Together MC=$6837 floor=$4824 aboveFloor=41.7%
+[2026-04-13 13:41:23] Session 1 | Check #9 | 19min remaining
+[2026-04-13 13:41:23] [S1-CHECK9] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 89 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 13 | WR: 46.2%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 2 armed
+  FLOORED & READY: UPRIL MC=$5781 floor=$5645 aboveFloor=2.4%
+  FLOORED & READY: BULLINA MC=$18119 floor=$9792 aboveFloor=85%
+  FLOORED & READY: HailMary  MC=$6304 floor=$6289 aboveFloor=0.2%
+  FLOORED & READY: trumpmemes MC=$9042 floor=$4376 aboveFloor=106.6%
+  FLOORED & READY: OILLESS MC=$8628 floor=$8607 aboveFloor=0.2%
+  FLOORED & READY: CrazyFrog MC=$16149 floor=$8296 aboveFloor=94.7%
+  FLOORED & READY: Rudi MC=$33807 floor=$10558 aboveFloor=220.2%
+  FLOORED & READY: Together MC=$9155 floor=$4824 aboveFloor=89.8%
+[2026-04-13 13:46:24] Session 1 | Check #10 | 14min remaining
+[2026-04-13 13:46:24] [S1-CHECK10] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 73 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 14 | WR: 42.9%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 2 armed
+  !! GATE VIOLATION: HANGHANG - HISTORY
+  FLOORED & READY: UPRIL MC=$5780 floor=$5645 aboveFloor=2.4%
+  FLOORED & READY: BULLINA MC=$21051 floor=$9792 aboveFloor=115%
+  FLOORED & READY: HailMary  MC=$6304 floor=$6289 aboveFloor=0.2%
+  FLOORED & READY: trumpmemes MC=$7800 floor=$4376 aboveFloor=78.3%
+  FLOORED & READY: OILLESS MC=$8628 floor=$8607 aboveFloor=0.2%
+  FLOORED & READY: CrazyFrog MC=$15864 floor=$8296 aboveFloor=91.2%
+  FLOORED & READY: Together MC=$7577 floor=$4824 aboveFloor=57.1%
+  FLOORED & READY: bel MC=$6698 floor=$6698 aboveFloor=0%
+[2026-04-13 13:51:25] Session 1 | Check #11 | 9min remaining
+[2026-04-13 13:51:25] [S1-CHECK11] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 36 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 14 | WR: 42.9%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 3 armed
+  !! GATE VIOLATION: Together - HISTORY
+  !! GATE VIOLATION: bel - SELL_PRESSURE
+  FLOORED & READY: UPRIL MC=$5787 floor=$5645 aboveFloor=2.5%
+  FLOORED & READY: BULLINA MC=$16443 floor=$9792 aboveFloor=67.9%
+  FLOORED & READY: HailMary  MC=$6312 floor=$6289 aboveFloor=0.4%
+  FLOORED & READY: trumpmemes MC=$6955 floor=$4376 aboveFloor=58.9%
+  FLOORED & READY: OILLESS MC=$8638 floor=$8607 aboveFloor=0.4%
+  FLOORED & READY: CrazyFrog MC=$17851 floor=$8296 aboveFloor=115.2%
+[2026-04-13 13:56:27] Session 1 | Check #12 | 4min remaining
+[2026-04-13 13:56:27] [S1-CHECK12] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 74 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 14 | WR: 42.9%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 1 armed
+  FLOORED & READY: UPRIL MC=$5782 floor=$5645 aboveFloor=2.4%
+  FLOORED & READY: BULLINA MC=$19044 floor=$9792 aboveFloor=94.5%
+  FLOORED & READY: HailMary  MC=$6307 floor=$6289 aboveFloor=0.3%
+  FLOORED & READY: trumpmemes MC=$6922 floor=$4376 aboveFloor=58.2%
+  FLOORED & READY: OILLESS MC=$8497 floor=$8497 aboveFloor=0%
+  FLOORED & READY: CrazyFrog MC=$19013 floor=$8296 aboveFloor=129.2%
+  FLOORED & READY: Together MC=$4849 floor=$4181 aboveFloor=16%
+[2026-04-13 14:01:28] 
+[2026-04-13 14:01:28] Session 1 COMPLETE — Running comprehensive review...
+
+================================================================================
+  SESSION 1 HOURLY REVIEW — 2026-04-13T07:01:28.501964+00:00
+  Log: /Users/kashanrana/Downloads/Printar/2wallets/./data/session_1_2026-04-13T14-01.jsonl
+================================================================================
+
+  [1] SCANNING PUMP.FUN FOR BONDED / HIGH-PERFORMING COINS...
+    Found 137 total coins | 74 bonded | 81 significant (ATH>$15K)
+
+  [2] CROSS-REFERENCING WITH OUR REGISTRY...
+    Caught: 6 | Missed: 75 | Missed bonded: 70
+
+  [3] TRADE ANALYSIS...
+
+  [4] GATE COMPLIANCE...
+
+  [5] ERROR ACCOUNTING (our errors + data provider errors)...
+
+  [6] ASSEMBLING REPORT...
+
+================================================================================
+  SESSION 1 REPORT
+================================================================================
+
+  BOT STATUS
+    Version: 2.5.0 | Registry: 299 | Nursery: 80 | Born total: 634
+    PnL: +0.076052 SOL | Trades: 14 | WR: 42.9%
+    States: {'FLOORED': 216, 'BLACKLISTED': 12, 'BUYING': 4, 'INDEXED': 57, 'CLOSED': 1, 'ARMED': 1, 'WATCHING': 8}
+
+  TRADE ANALYSIS (17 trades)
+    Together     entry=$  4333 exit=$  4247 PnL=-4.0% hold=81s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$33387]
+    HANGHANG     entry=$ 14911 exit=$ 14759 PnL=-3.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$32060]
+    HANGHANG     entry=$ 14702 exit=$ 15817 PnL=+5.6% hold=177s reason=SELLER_EXIT [clean]
+    HANGHANG     entry=$ 16356 exit=$ 16539 PnL=-0.9% hold=81s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$32060]
+    trumpmemes   entry=$  5043 exit=$  6248 PnL=+21.9% hold=10s reason=TAKE_PROFIT [clean]
+    Together     entry=$  5576 exit=$  5407 PnL=-5.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | BIG_LOSS_-5.0% | EXITED_EARLY_ATH_WAS_$33387]
+    PENGUIN      entry=$  5580 exit=$  6502 PnL=+14.5% hold=60s reason=SELLER_EXIT [clean]
+    CrazyFrog    entry=$  8615 exit=$ 10047 PnL=+14.6% hold=84s reason=SELLER_EXIT [clean]
+    trumpmemes   entry=$ 10225 exit=$ 10810 PnL=+3.7% hold=16s reason=SELLER_EXIT [clean]
+    MUMU         entry=$  8021 exit=$  8826 PnL=+8.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT]
+    PENGUIN      entry=$  5120 exit=$  5192 PnL=-0.6% hold=56s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$13777]
+    Fish         entry=$  4143 exit=$  4143 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$13112]
+    MUMU         entry=$ 11206 exit=$ 11013 PnL=-3.7% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$22371]
+    BULLINA      entry=$ 10107 exit=$ 11020 PnL=+7.0% hold=70s reason=SELLER_EXIT [clean]
+    MUMU         entry=$ 14151 exit=$ 13775 PnL=-4.7% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$22371]
+    Fish         entry=$  4756 exit=$  4996 PnL=+3.0% hold=3s reason=SELLER_EXIT [clean]
+    Fish         entry=$  8577 exit=$  8133 PnL=-7.2% hold=2s reason=STOP_LOSS [BIG_LOSS_-7.2% | EXITED_EARLY_ATH_WAS_$13112]
+
+  MARKET COVERAGE
+    Significant coins (ATH>$15K): 81
+    Bonded coins: 74
+    WE CAUGHT: 6 | WE MISSED: 75 | Coverage: 7.4%
+
+    -- CAUGHT (top 10) --
+    Amiko        ATH=$77,612,289 MC=$32,764,806 state=WATCHING traded=False
+    LOL          ATH=$13,008,585 MC=$9,241,108 state=WATCHING traded=False
+    TOKABULL     ATH=$  53,724 MC=$  36,784 state=INDEXED traded=False
+    Together     ATH=$  33,387 MC=$   4,077 state=CLOSED traded=True
+    CrazyFrog    ATH=$  30,564 MC=$  15,592 state=FLOORED traded=True
+    MUMU         ATH=$  22,371 MC=$  14,438 state=BLACKLISTED traded=True
+
+    -- MISSED (top 15) --
+    arc          ATH=$198,981,519,414,813,135,994,880 MC=$74,928,122 bonded=True WHY: CREATED_703312min_AGO (before our session), NEVER_DISCOVERED
+    jellyjelly   ATH=$41,315,276,438,395,127,070,720 MC=$42,683,092 bonded=True WHY: CREATED_631172min_AGO (before our session), NEVER_DISCOVERED
+    ACT          ATH=$1,514,846,291,602,225,233,920 MC=$11,779,367 bonded=True WHY: CREATED_778774min_AGO (before our session), NEVER_DISCOVERED
+    Ban          ATH=$1,477,008,809,447,220,314,112 MC=$89,068,107 bonded=True WHY: CREATED_769977min_AGO (before our session), NEVER_DISCOVERED
+    Bert         ATH=$788,236,065,884,624,300,000 MC=$8,302,108 bonded=True WHY: CREATED_805465min_AGO (before our session), NEVER_DISCOVERED
+    AVA          ATH=$454,352,570,038,418,400,000 MC=$6,832,137 bonded=True WHY: CREATED_742340min_AGO (before our session), NEVER_DISCOVERED
+    ZEREBRO      ATH=$219,586,748,850,361,830,000 MC=$9,115,378 bonded=True WHY: CREATED_770467min_AGO (before our session), NEVER_DISCOVERED
+    pippin       ATH=$9,023,316,820,413,354,000 MC=$26,573,102 bonded=True WHY: CREATED_748010min_AGO (before our session), NEVER_DISCOVERED
+    Fartcoin     ATH=$428,151,807,937 MC=$189,468,749 bonded=True WHY: CREATED_780536min_AGO (before our session), NEVER_DISCOVERED
+    Verse        ATH=$1,182,361,153 MC=$2,543,273 bonded=False WHY: NEVER_DISCOVERED
+    ALCH         ATH=$436,749,870 MC=$53,555,898 bonded=True WHY: CREATED_722228min_AGO (before our session), NEVER_DISCOVERED
+    CHILLGUY     ATH=$247,386,435 MC=$13,087,160 bonded=True WHY: CREATED_798150min_AGO (before our session), NEVER_DISCOVERED
+    WhiteWhale   ATH=$207,437,545 MC=$6,207,555 bonded=True WHY: CREATED_262400min_AGO (before our session), NEVER_DISCOVERED
+    Pnut         ATH=$207,288,444 MC=$40,457,156 bonded=True WHY: CREATED_761320min_AGO (before our session), NEVER_DISCOVERED
+    CINO         ATH=$192,840,718 MC=$9,254,766 bonded=False WHY: NEVER_DISCOVERED
+
+  GATE COMPLIANCE
+    Violations: 0 | Stuck WATCHING: 0 | Stale: 54
+
+  ERROR ACCOUNTING
+    Spot-checked: 10 tokens
+    Data errors found: 2
+    [MC_DRIFT] mayhem: PumpPortal may have stopped sending ticks, or our refresh failed
+    [MC_DRIFT] mayhem: PumpPortal may have stopped sending ticks, or our refresh failed
+
+  POSSIBLE ERROR SOURCES (to account for in analysis)
+    - PumpPortal: can misclassify buy/sell, report stale solAmount, silently drop subscriptions
+    - Our bot: MC direction override can flip sells to buys for catalyst, floor detection on thin data
+    - Pump.fun API: phantom MC (real_sol=0 but high MC), stale ATH, delayed migration status
+
+  RECOMMENDATIONS FOR NEXT SESSION
+    1. DISCOVERY_TOO_NARROW: We're missing more runners than we catch. Consider lowering nursery promotion thresholds or seeding more aggressively.
+    2. DATA_ERRORS: 2 data integrity issues found. See errorAccounting for details.
+
+  Log saved to: /Users/kashanrana/Downloads/Printar/2wallets/./data/session_1_2026-04-13T14-01.jsonl
+================================================================================
+
+[2026-04-13 14:01:51] Session 1 review done.
+[2026-04-13 14:01:51] 
+[2026-04-13 14:01:51] 
+[2026-04-13 14:01:51] ################################################################
+[2026-04-13 14:01:51]   SESSION 2 / 6 — STARTING
+[2026-04-13 14:01:51] ################################################################
+[2026-04-13 14:01:51] Session 2 | Check #1 | 60min remaining
+[2026-04-13 14:01:51] [S2-CHECK1] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 89 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 15 | WR: 40%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 1 armed
+  FLOORED & READY: UPRIL MC=$5778 floor=$5645 aboveFloor=2.4%
+  FLOORED & READY: BULLINA MC=$18498 floor=$9792 aboveFloor=88.9%
+  FLOORED & READY: HailMary  MC=$6301 floor=$6289 aboveFloor=0.2%
+  FLOORED & READY: VOICEBOX MC=$7227 floor=$4413 aboveFloor=63.8%
+  FLOORED & READY: OILLESS MC=$8332 floor=$7863 aboveFloor=6%
+  FLOORED & READY: CrazyFrog MC=$15487 floor=$8296 aboveFloor=86.7%
+[2026-04-13 14:06:52] Session 2 | Check #2 | 54min remaining
+[2026-04-13 14:06:52] [S2-CHECK2] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 41 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 15 | WR: 40%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 2 armed
+  !! GATE VIOLATION: Together - SELL_PRESSURE
+  FLOORED & READY: UPRIL MC=$5772 floor=$5645 aboveFloor=2.3%
+  FLOORED & READY: BULLINA MC=$18853 floor=$9792 aboveFloor=92.5%
+  FLOORED & READY: HailMary  MC=$6295 floor=$6289 aboveFloor=0.1%
+  FLOORED & READY: VOICEBOX MC=$7104 floor=$4413 aboveFloor=61%
+  FLOORED & READY: OILLESS MC=$8069 floor=$7863 aboveFloor=2.6%
+  FLOORED & READY: CrazyFrog MC=$17247 floor=$8296 aboveFloor=107.9%
+[2026-04-13 14:11:54] Session 2 | Check #3 | 49min remaining
+[2026-04-13 14:11:54] [S2-CHECK3] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 78 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 17 | WR: 47.1%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 4 armed
+  !! GATE VIOLATION: OILLESS - HISTORY
+  !! GATE VIOLATION: Together - HISTORY
+  FLOORED & READY: UPRIL MC=$5769 floor=$5645 aboveFloor=2.2%
+  FLOORED & READY: BULLINA MC=$15990 floor=$9792 aboveFloor=63.3%
+  FLOORED & READY: HailMary  MC=$6292 floor=$6289 aboveFloor=0%
+  FLOORED & READY: VOICEBOX MC=$6566 floor=$4413 aboveFloor=48.8%
+  FLOORED & READY: CrazyFrog MC=$21948 floor=$8296 aboveFloor=164.6%
+[2026-04-13 14:16:55] Session 2 | Check #4 | 44min remaining
+[2026-04-13 14:16:55] [S2-CHECK4] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 53 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 18 | WR: 50%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 4 armed
+  !! GATE VIOLATION: TRAIN - HISTORY
+  FLOORED & READY: UPRIL MC=$5765 floor=$5645 aboveFloor=2.1%
+  FLOORED & READY: BULLINA MC=$16192 floor=$9792 aboveFloor=65.4%
+  FLOORED & READY: HailMary  MC=$6288 floor=$6288 aboveFloor=0%
+  FLOORED & READY: VOICEBOX MC=$7362 floor=$4413 aboveFloor=66.8%
+  FLOORED & READY: OILLESS MC=$6628 floor=$6628 aboveFloor=0%
+  FLOORED & READY: CrazyFrog MC=$21998 floor=$8296 aboveFloor=165.2%
+  FLOORED & READY: Together MC=$4130 floor=$3989 aboveFloor=3.5%
+[2026-04-13 14:21:56] Session 2 | Check #5 | 39min remaining
+[2026-04-13 14:21:56] [S2-CHECK5] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 51 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 18 | WR: 50%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 3 armed
+  !! GATE VIOLATION: AIJESUS - SELL_PRESSURE
+  !! GATE VIOLATION: COW - SELL_PRESSURE
+  FLOORED & READY: UPRIL MC=$5760 floor=$5645 aboveFloor=2.1%
+  FLOORED & READY: BULLINA MC=$17097 floor=$9792 aboveFloor=74.6%
+  FLOORED & READY: HailMary  MC=$6283 floor=$6283 aboveFloor=0%
+  FLOORED & READY: VOICEBOX MC=$9763 floor=$4413 aboveFloor=121.2%
+  FLOORED & READY: ONE MC=$8627 floor=$8493 aboveFloor=1.6%
+  FLOORED & READY: OILLESS MC=$6622 floor=$6622 aboveFloor=0%
+  FLOORED & READY: CrazyFrog MC=$19393 floor=$8296 aboveFloor=133.8%
+  FLOORED & READY: PENGUIN MC=$4008 floor=$2964 aboveFloor=35.2%
+[2026-04-13 14:26:57] Session 2 | Check #6 | 34min remaining
+[2026-04-13 14:26:57] [S2-CHECK6] Taking state snapshot...
+  Version: 2.5.0
+  Registry: ? | Nursery: 76 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 18 | WR: 50%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 3 armed
+  !! GATE VIOLATION: OR - HISTORY
+  FLOORED & READY: UPRIL MC=$5738 floor=$5645 aboveFloor=1.7%
+  FLOORED & READY: BULLINA MC=$15573 floor=$9792 aboveFloor=59%
+  FLOORED & READY: HailMary  MC=$6268 floor=$6266 aboveFloor=0%
+  FLOORED & READY: VOICEBOX MC=$13622 floor=$4413 aboveFloor=208.7%
+  FLOORED & READY: OILLESS MC=$6602 floor=$6602 aboveFloor=0%
+  FLOORED & READY: CrazyFrog MC=$15614 floor=$8296 aboveFloor=88.2%

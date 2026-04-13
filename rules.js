@@ -59,7 +59,7 @@ export const MAX_HOLD_SECS        = 180;      // 3 min hard cap
 // ── Re-entry rules ──────────────────────────────────────────────
 export const REENTRY_MAX_ABOVE_EXIT = 0.02;
 export const REENTRY_COOLDOWN_SECS  = 60;
-export const MAX_TRADES_PER_TOKEN   = 3;
+export const MAX_TRADES_PER_TOKEN   = 5;
 
 // ── Mayhem blacklist ────────────────────────────────────────────
 export const MAYHEM_AGENT_WALLET  = "BwWK17cbHxwWBKZkUYvzxLcNQ1YVyaFezduWbtm2de6s";

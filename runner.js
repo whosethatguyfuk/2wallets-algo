@@ -1079,7 +1079,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '2.5.0',
+    version:    '2.5.1',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,
@@ -1410,19 +1410,58 @@ function runWatchdog() {
 setInterval(runWatchdog, 5_000);
 console.log('🐕 Watchdog started (5s interval)');
 
-// ── PP Re-subscribe: every 30s force re-sub all active tokens ────
+// ── Registry pruning: remove dead tokens to keep subscriptions manageable ──
+function pruneDeadTokens() {
+  const now = Date.now();
+  const STALE_PRUNE_MS = 10 * 60_000;
+  let pruned = 0;
+  for (const [mint, token] of registry) {
+    if (token.proven) continue;
+    if (token.state === STATE.HOLDING || token.state === STATE.EXIT_UNLOCKED || token.state === STATE.BUYING) continue;
+    if (token.activeTrade) continue;
+
+    const lastTick = token.lastTickTs || token.stateChangedAt || 0;
+    const staleDuration = now - lastTick;
+
+    const isDead = staleDuration > STALE_PRUNE_MS && (
+      token.state === STATE.WATCHING ||
+      token.state === STATE.INDEXED ||
+      (token.state === STATE.FLOORED && token.currentMc < 3000) ||
+      token.state === STATE.BLACKLISTED
+    );
+
+    if (isDead) {
+      registry.delete(mint);
+      pruned++;
+    }
+  }
+  if (pruned > 0) console.log(`🧹 Pruned ${pruned} dead tokens from registry (${registry.size} remaining)`);
+}
+setInterval(pruneDeadTokens, 60_000);
+
+// ── PP Re-subscribe: every 30s force re-sub active tokens (max 200) ──
 setInterval(() => {
   if (!ppWs || ppWs.readyState !== 1) return;
   const activeMints = [];
   for (const [mint, token] of registry) {
-    if ([STATE.BLACKLISTED].includes(token.state)) continue;
+    if ([STATE.BLACKLISTED, STATE.CLOSED].includes(token.state)) continue;
     activeMints.push(mint);
+  }
+  if (activeMints.length > 200) {
+    activeMints.sort((a, b) => {
+      const ta = registry.get(a), tb = registry.get(b);
+      const pa = ['ARMED','HOLDING','EXIT_UNLOCKED','BUYING'].includes(ta?.state) ? 0 : 1;
+      const pb = ['ARMED','HOLDING','EXIT_UNLOCKED','BUYING'].includes(tb?.state) ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+      return (tb?.currentMc || 0) - (ta?.currentMc || 0);
+    });
+    activeMints.length = 200;
   }
   if (activeMints.length > 0) {
     ppWs.send(JSON.stringify({ method: 'subscribeTokenTrade', keys: activeMints }));
   }
 }, 30_000);
-console.log('🔄 PP re-subscribe every 30s');
+console.log('🔄 PP re-subscribe every 30s (max 200 mints, prioritized)');
 
 // ── Pump.fun API refresh: update stale tokens every 2 min ────────
 async function refreshStaleTokens() {
