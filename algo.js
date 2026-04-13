@@ -21,7 +21,7 @@ import { STATE, MIN_HOLD_SECS, REENTRY_COOLDOWN_SECS,
          MAX_TRADES_PER_TOKEN, FLOOR_TOUCH_PCT,
          FLOOR_ARM_ZONE_PCT, UNLOCK_MC_USD, STOP_LOSS_PCT,
          ENTRY_MC_MIN, ROUND2_PUMP_MULT,
-         JITO_ROUND2_MIN_ATH } from './rules.js';
+         JITO_ROUND2_MIN_ATH, HISTORY_MIN_TRADES } from './rules.js';
 
 import { runEntryGates, runExitGates, floorGate } from './gates.js';
 
@@ -227,6 +227,10 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
       const round2Ready = token.sessionHigh > floor * ROUND2_PUMP_MULT;
       if (!round2Ready) return null;
     }
+
+    // Pre-arm history check: must meet trade threshold before arming
+    const totalKnownArm = (token.historyTrades || 0) + (token.liveTrades || 0);
+    if (totalKnownArm < HISTORY_MIN_TRADES) return null;
 
     if (aboveFloor <= FLOOR_ARM_ZONE_PCT && mc > floor * 0.85 && hasRealPump && mc >= ENTRY_MC_MIN) {
       token.armedAt = nowSec;
