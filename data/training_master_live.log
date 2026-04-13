@@ -1,0 +1,24 @@
+[2026-04-13 13:01:15] === 6-HOUR TRAINING MASTER STARTED ===
+[2026-04-13 13:01:15] Bot: https://2wallets-algo-production.up.railway.app
+[2026-04-13 13:01:15] [START] Taking state snapshot...
+  Version: 2.4.0
+  Registry: ? | Nursery: 41 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 0 | WR: 0%
+  States: {}
+[2026-04-13 13:01:15] 
+[2026-04-13 13:01:15] ################################################################
+[2026-04-13 13:01:15]   SESSION 1 / 6 — STARTING
+[2026-04-13 13:01:15] ################################################################
+[2026-04-13 13:01:15] Session 1 | Check #1 | 60min remaining
+[2026-04-13 13:01:15] [S1-CHECK1] Taking state snapshot...
+  Version: 2.4.0
+  Registry: ? | Nursery: 41 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 0 | WR: 0%
+  States: {}
+  Blocked→Armed pipeline: 4 tokens blocked | 0 armed
+  FLOORED & READY: Rudi MC=$10386 floor=$10386 aboveFloor=0%
+  FLOORED & READY: Camila  MC=$15154 floor=$12444 aboveFloor=21.8%
+  FLOORED & READY: ALPHA MC=$4368 floor=$4368 aboveFloor=0%
+  FLOORED & READY: CrazyFrog MC=$15289 floor=$15289 aboveFloor=0%

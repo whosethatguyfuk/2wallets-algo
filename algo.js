@@ -222,7 +222,7 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     const floor      = token.sessionLow;
     const aboveFloor = (mc - floor) / floor;
 
-    const hasRealPump = token.sessionHigh > floor * 1.50;
+    const hasRealPump = token.sessionHigh > floor * 1.30;
 
     // Round-2 gate for Jito bundles: must have a second organic pump
     // sessionHigh > floor × ROUND2_PUMP_MULT proves organic demand after bundler dump
@@ -231,8 +231,9 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
       if (!round2Ready) return null;
     }
 
-    // Pre-arm history check: nursery grads have complete data from birth
-    if (!token.isNurseryGrad) {
+    // Pre-arm history check: skip for nursery grads (complete data from birth)
+    // or tokens with 5+ floor touches (data quality proven by repeated floor tests)
+    if (!token.isNurseryGrad && (token.floorTouches || 0) < 5) {
       const totalKnownArm = (token.historyTrades || 0) + (token.liveTrades || 0);
       if (totalKnownArm < HISTORY_MIN_TRADES) return null;
     }

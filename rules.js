@@ -33,7 +33,7 @@ export const QUALITY_MC_THRESHOLD = 5_000;     // above this MC, large buys are 
 export const HISTORY_MIN_TRADES   = 10;       // minimum trades needed to establish floor
 
 // ── Floor detection ─────────────────────────────────────────────
-export const FLOOR_ARM_ZONE_PCT   = 0.15;     // arm when within 15% above session low
+export const FLOOR_ARM_ZONE_PCT   = 0.20;     // arm when within 20% above session low
 export const FLOOR_MIN_TOUCHES    = 2;        // floor must have been tested 2+ times
 export const FLOOR_TOUCH_PCT      = 0.06;     // ±6% = "touching the same level"
 
