@@ -503,11 +503,49 @@ async function handleEvent(event) {
     return;
   }
 
+  // ── DCA partial sell ────────────────────────────────────────────
+  if (event.type === 'PARTIAL_SELL') {
+    const { token, trade, partial } = event;
+
+    if (!walletComparisons.has(token.mint)) walletComparisons.set(token.mint, { walletTrades: [], ourTrades: [] });
+    walletComparisons.get(token.mint).ourTrades.push({
+      ts: Date.now(), isBuy: false, sol: partial.solSold,
+      mc: Math.round(partial.mc), pnl: partial.pnlPct,
+      reason: partial.tranche === 1 ? 'DCA_T1' : partial.tranche === 2 ? 'DCA_T2' : 'DCA_T3',
+    });
+
+    const solGain = partial.solSold * (partial.pnlPct / 100);
+    netPnlSol += solGain;
+    totalFeesSol += partial.solSold * TRADE_FEE_PCT;
+
+    broadcast({
+      type: 'dca_sell', mint: token.mint, symbol: token.symbol,
+      tranche: partial.tranche, pct: +(partial.pct * 100).toFixed(0),
+      mc: Math.round(partial.mc), pnl: partial.pnlPct,
+      remaining: trade.remainingSol.toFixed(4),
+      mult: +(partial.mc / trade.entryMc).toFixed(2),
+    });
+
+    if (REAL_TRADING) {
+      const sellPct = partial.pct;
+      retrySell(token.mint, token.symbol).then(result => {
+        log('DCA_SELL_REAL', token.symbol, token.mint, {
+          tranche: partial.tranche, sig: result.signature?.slice(0,12),
+          solReceived: result.solReceived,
+        });
+      }).catch(e => {
+        log('DCA_SELL_FAIL', token.symbol, token.mint, { tranche: partial.tranche, error: e.message });
+      });
+    }
+    return;
+  }
+
+  // ── Full close (floor break, bond cap, max hold, DCA complete) ──
   if (event.type === 'CLOSE_TRADE') {
     const { token, trade, reason, exitMc } = event;
 
     if (!REAL_TRADING && trade) {
-      const slippageTicks = 1 + Math.floor(Math.random() * 3); // 1-3 ticks delay
+      const slippageTicks = 1 + Math.floor(Math.random() * 3);
       log('SLIPPAGE_QUEUE_SELL', token.symbol, token.mint, { triggerExitMc: Math.round(exitMc), reason, delayTicks: slippageTicks });
       pendingSells.set(token.mint, { token, trade, reason, triggerExitMc: exitMc, ticksLeft: slippageTicks, queuedAt: Date.now() });
       return;
@@ -516,16 +554,19 @@ async function handleEvent(event) {
     openCount = Math.max(0, openCount - 1);
 
     if (trade) {
-      const pnl = trade.pnlPct;  // already includes TRADE_FEE_PCT deduction from closeTrade
+      const pnl = trade.pnlPct;
       if (pnl > 0) { totalWins++; netPnlSol += POSITION_SOL * (pnl / 100); }
       else          { totalLosses++; netPnlSol += POSITION_SOL * (pnl / 100); }
       totalFeesSol += POSITION_SOL * TRADE_FEE_PCT;
     }
 
-    broadcast({ type: 'sell', mint: token.mint, symbol: token.symbol,
-      pnl: trade?.pnlPct?.toFixed(2), reason, exitMc: Math.round(exitMc) });
+    broadcast({
+      type: 'sell', mint: token.mint, symbol: token.symbol,
+      pnl: trade?.pnlPct?.toFixed(2), reason, exitMc: Math.round(exitMc),
+      tranchesSold: trade?.tranchesSold || 0,
+    });
 
-    if (REAL_TRADING) {
+    if (REAL_TRADING && trade?.remainingSol > 0.001) {
       retrySell(token.mint, token.symbol).then(result => {
         log('SELL_REAL', token.symbol, token.mint, { sig: result.signature?.slice(0,12), solReceived: result.solReceived, reason });
         if (getSolBalance) getSolBalance().then(b => { realWalletSol = b; }).catch(() => {});
@@ -744,14 +785,24 @@ function connectPP() {
         const slipPct = ((slippedExitMc - ps.triggerExitMc) / ps.triggerExitMc * 100).toFixed(2);
         log('SLIPPAGE_SELL', ps.token.symbol, mint, { triggerExitMc: Math.round(ps.triggerExitMc), fillExitMc: Math.round(slippedExitMc), slipPct, reason: ps.reason });
         openCount = Math.max(0, openCount - 1);
-        const pnlRaw = (slippedExitMc - ps.trade.entryMc) / ps.trade.entryMc * 100;
-        const pnl = pnlRaw - (TRADE_FEE_PCT * 100);
-        if (pnl > 0) { totalWins++; netPnlSol += POSITION_SOL * (pnl / 100); }
-        else          { totalLosses++; netPnlSol += POSITION_SOL * (pnl / 100); }
-        totalFeesSol += POSITION_SOL * TRADE_FEE_PCT;
+
+        // Blended PnL: account for DCA partial sells already executed
+        const partials = ps.trade.partialSells || [];
+        const remainSol = ps.trade.remainingSol || POSITION_SOL;
+        const posSol = ps.trade.positionSol || POSITION_SOL;
+        let totalReturn = 0;
+        for (const p of partials) { totalReturn += p.solSold * (1 + p.pnlPct / 100); }
+        const remainPnlRaw = (slippedExitMc - ps.trade.entryMc) / ps.trade.entryMc * 100;
+        const remainPnl = remainPnlRaw - (TRADE_FEE_PCT * 100);
+        totalReturn += remainSol * (1 + remainPnl / 100);
+        const pnl = ((totalReturn / posSol) - 1) * 100;
+
+        if (pnl > 0) { totalWins++; netPnlSol += posSol * (pnl / 100); }
+        else          { totalLosses++; netPnlSol += posSol * (pnl / 100); }
+        totalFeesSol += posSol * TRADE_FEE_PCT;
         if (!walletComparisons.has(mint)) walletComparisons.set(mint, { walletTrades: [], ourTrades: [] });
-        walletComparisons.get(mint).ourTrades.push({ ts: Date.now(), isBuy: false, sol: POSITION_SOL, mc: Math.round(slippedExitMc), pnl: +pnl.toFixed(2), reason: ps.reason });
-        broadcast({ type: 'sell', mint, symbol: ps.token.symbol, pnl: pnl.toFixed(2), reason: ps.reason, exitMc: Math.round(slippedExitMc), slipPct });
+        walletComparisons.get(mint).ourTrades.push({ ts: Date.now(), isBuy: false, sol: remainSol, mc: Math.round(slippedExitMc), pnl: +pnl.toFixed(2), reason: ps.reason });
+        broadcast({ type: 'sell', mint, symbol: ps.token.symbol, pnl: pnl.toFixed(2), reason: ps.reason, exitMc: Math.round(slippedExitMc), slipPct, tranchesSold: ps.trade.tranchesSold || 0 });
       }
     }
 
@@ -1067,7 +1118,8 @@ sse.onmessage=(e)=>{
     const d=JSON.parse(e.data);
     let cls='',txt='';
     if(d.type==='buy'){cls='sse-buy';txt='BUY  '+d.symbol+' at $'+fmtMc(d.mc)+(d.jito?' [JITO R2]':'')}
-    if(d.type==='sell'){cls='sse-sell';txt='SELL '+d.symbol+' → '+(d.pnl||'?')+'% ('+d.reason+')'}
+    if(d.type==='dca_sell'){cls='sse-buy';txt='DCA T'+d.tranche+' '+d.symbol+' '+d.pct+'% at $'+fmtMc(d.mc)+' ('+d.mult+'x) → '+d.remaining+' SOL left'}
+    if(d.type==='sell'){cls='sse-sell';txt='EXIT '+d.symbol+' → '+(d.pnl||'?')+'% ('+d.reason+') ['+(d.tranchesSold||0)+'/3 DCA]'}
     if(d.type==='arm'){cls='sse-arm';txt='ARM  '+d.symbol+' at $'+fmtMc(d.mc)}
     if(d.type==='disarm'){cls='sse-disarm';txt='DISARM '+d.symbol}
     if(txt){
@@ -1113,7 +1165,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '2.11.0',
+    version:    '3.0.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,
@@ -1314,7 +1366,7 @@ app.get('/api/sse', (req, res) => {
 
 // ── Start ────────────────────────────────────────────────────────
 server.listen(PORT, () => {
-  console.log(`\n🐊 2Wallets Algo v2.0 — port ${PORT}`);
+  console.log(`\n🐊 2Wallets Algo v3.0 (DCA Hold Strategy) — port ${PORT}`);
   console.log(`📁 Logging to: ${LOG_FILE}`);
   console.log(`⚡ Real trading: ${REAL_TRADING}`);
   console.log();

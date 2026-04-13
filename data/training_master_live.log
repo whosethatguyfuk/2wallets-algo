@@ -1345,3 +1345,305 @@
   !! GATE VIOLATION: Alpha - SELL_PRESSURE
   FLOORED & READY: X Chat MC=$6434 floor=$6426 aboveFloor=0.1%
   FLOORED & READY: Psyop MC=$22148 floor=$22132 aboveFloor=0.1%
+[2026-04-13 18:29:09] Session 6 | Check #6 | 34min remaining
+[2026-04-13 18:29:09] [S6-CHECK6] Taking state snapshot...
+  Version: 2.11.0
+  Registry: ? | Nursery: 63 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 3 | WR: 66.7%
+  States: {}
+  Blocked→Armed pipeline: 2 tokens blocked | 2 armed
+  !! GATE VIOLATION: TAP - SELL_PRESSURE
+  !! GATE VIOLATION: Camila  - SELL_PRESSURE
+[2026-04-13 18:34:10] Session 6 | Check #7 | 29min remaining
+[2026-04-13 18:34:10] [S6-CHECK7] Taking state snapshot...
+  Version: 2.11.0
+  Registry: ? | Nursery: 53 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 12 | WR: 50%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 5 armed
+  !! GATE VIOLATION: TAP - HISTORY
+  !! GATE VIOLATION: WeClone - RE_ENTRY
+  !! GATE VIOLATION: Tesoro - RE_ENTRY
+  FLOORED & READY: WATERGATE MC=$13089 floor=$8248 aboveFloor=58.7%
+  FLOORED & READY: Hairlines MC=$8435 floor=$7279 aboveFloor=15.9%
+  FLOORED & READY: Bulluld MC=$10034 floor=$9923 aboveFloor=1.1%
+  FLOORED & READY: MEM MC=$8859 floor=$8214 aboveFloor=7.9%
+[2026-04-13 18:39:12] Session 6 | Check #8 | 24min remaining
+[2026-04-13 18:39:12] [S6-CHECK8] Taking state snapshot...
+  Version: 2.11.0
+  Registry: ? | Nursery: 66 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 22 | WR: 40.9%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 5 armed
+  !! GATE VIOLATION: Haku - RE_ENTRY
+  !! GATE VIOLATION: shitcoin - SELL_PRESSURE
+  !! GATE VIOLATION: MEM - HISTORY
+  FLOORED & READY: TAP MC=$15126 floor=$14369 aboveFloor=5.3%
+  FLOORED & READY: Camila  MC=$4002 floor=$3997 aboveFloor=0.1%
+  FLOORED & READY: WATERGATE MC=$19879 floor=$12657 aboveFloor=57.1%
+  FLOORED & READY: WeClone MC=$9871 floor=$7701 aboveFloor=28.2%
+  FLOORED & READY: COW MC=$9062 floor=$9055 aboveFloor=0.1%
+  FLOORED & READY: Hairlines MC=$12462 floor=$8275 aboveFloor=50.6%
+[2026-04-13 18:44:13] Session 6 | Check #9 | 19min remaining
+[2026-04-13 18:44:13] [S6-CHECK9] Taking state snapshot...
+  Version: 2.11.0
+  Registry: ? | Nursery: 48 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 31 | WR: 41.9%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 5 armed
+  !! GATE VIOLATION: WATERGATE - RE_ENTRY
+  !! GATE VIOLATION: ALPHA - SELL_PRESSURE
+  FLOORED & READY: TAP MC=$15146 floor=$14369 aboveFloor=5.4%
+  FLOORED & READY: Haku MC=$9884 floor=$7476 aboveFloor=32.2%
+  FLOORED & READY: WeClone MC=$11963 floor=$9700 aboveFloor=23.3%
+  FLOORED & READY: COW MC=$9066 floor=$9055 aboveFloor=0.1%
+  FLOORED & READY: Hairlines MC=$16234 floor=$12526 aboveFloor=29.6%
+[2026-04-13 18:49:14] Session 6 | Check #10 | 14min remaining
+[2026-04-13 18:49:14] [S6-CHECK10] Taking state snapshot...
+  Version: 2.11.0
+  Registry: ? | Nursery: 32 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 42 | WR: 45.2%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 8 armed
+  !! GATE VIOLATION: WATERGATE - RE_ENTRY
+  !! GATE VIOLATION: Tesoro - SELL_PRESSURE
+  !! GATE VIOLATION: MEM - SELL_PRESSURE
+  !! GATE VIOLATION: WOJAK - RE_ENTRY
+  !! GATE VIOLATION: GRLC - SELL_PRESSURE
+  FLOORED & READY: TAP MC=$15363 floor=$14369 aboveFloor=6.9%
+  FLOORED & READY: Haku MC=$11813 floor=$8142 aboveFloor=45.1%
+  FLOORED & READY: WeClone MC=$14192 floor=$10865 aboveFloor=30.6%
+  FLOORED & READY: COW MC=$9030 floor=$9030 aboveFloor=0%
+  FLOORED & READY: Hairlines MC=$22160 floor=$15484 aboveFloor=43.1%
+[2026-04-13 18:54:15] Session 6 | Check #11 | 9min remaining
+[2026-04-13 18:54:15] [S6-CHECK11] Taking state snapshot...
+  Version: 2.11.0
+  Registry: ? | Nursery: 92 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 57 | WR: 40.4%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 9 armed
+  !! GATE VIOLATION: WATERGATE - RE_ENTRY
+  !! GATE VIOLATION: Haku - RE_ENTRY
+  !! GATE VIOLATION: Tesoro - SELL_PRESSURE
+  !! GATE VIOLATION: Memecoin - SELL_PRESSURE
+  !! GATE VIOLATION: Scientology  - SELL_PRESSURE
+  !! GATE VIOLATION: WOJAK - SELL_PRESSURE
+  !! GATE VIOLATION: GRLC - SELL_PRESSURE
+  FLOORED & READY: TAP MC=$15357 floor=$14369 aboveFloor=6.9%
+  FLOORED & READY: WeClone MC=$13005 floor=$13005 aboveFloor=0%
+  FLOORED & READY: shitcoin MC=$13831 floor=$13830 aboveFloor=0%
+  FLOORED & READY: COW MC=$9027 floor=$9027 aboveFloor=0%
+  FLOORED & READY: Hairlines MC=$22122 floor=$20144 aboveFloor=9.8%
+[2026-04-13 18:59:17] Session 6 | Check #12 | 4min remaining
+[2026-04-13 18:59:17] [S6-CHECK12] Taking state snapshot...
+  Version: 2.11.0
+  Registry: ? | Nursery: 65 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 78 | WR: 39.7%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 13 armed
+  !! GATE VIOLATION: Haku - RE_ENTRY
+  !! GATE VIOLATION: WeClone - RE_ENTRY
+  !! GATE VIOLATION: Scientology  - RE_ENTRY
+  !! GATE VIOLATION: PISTACHIO - RE_ENTRY
+  !! GATE VIOLATION: GRLC - SELL_PRESSURE
+  !! GATE VIOLATION: GOAT - SELL_PRESSURE
+  !! GATE VIOLATION: Tonekko - SELL_PRESSURE
+  !! GATE VIOLATION: WORLDWIDE - QUALITY
+  FLOORED & READY: COW MC=$9001 floor=$9001 aboveFloor=0%
+  FLOORED & READY: Hairlines MC=$31286 floor=$22030 aboveFloor=42%
+[2026-04-13 19:04:18] 
+[2026-04-13 19:04:18] Session 6 COMPLETE — Running comprehensive review...
+
+================================================================================
+  SESSION 6 HOURLY REVIEW — 2026-04-13T12:04:18.558026+00:00
+  Log: /Users/kashanrana/Downloads/Printar/2wallets/./data/session_6_2026-04-13T19-04.jsonl
+================================================================================
+
+  [1] SCANNING PUMP.FUN FOR BONDED / HIGH-PERFORMING COINS...
+    Found 136 total coins | 69 bonded | 8 significant (ATH>$15K)
+
+  [2] CROSS-REFERENCING WITH OUR REGISTRY...
+    Caught: 6 | Missed: 2 | Missed bonded: 1
+
+  [3] TRADE ANALYSIS...
+
+  [4] GATE COMPLIANCE...
+
+  [5] ERROR ACCOUNTING (our errors + data provider errors)...
+
+  [6] ASSEMBLING REPORT...
+
+================================================================================
+  SESSION 6 REPORT
+================================================================================
+
+  BOT STATUS
+    Version: 2.11.0 | Registry: 358 | Nursery: 60 | Born total: 590
+    PnL: +0.014996 SOL | Trades: 86 | WR: 39.5%
+    States: {'FLOORED': 266, 'ARMED': 13, 'INDEXED': 67, 'WATCHING': 3, 'BLACKLISTED': 5, 'EXIT_UNLOCKED': 3, 'CLOSED': 1}
+
+  TRADE ANALYSIS (95 trades)
+    10CENTS      entry=$ 13482 exit=$ 14402 PnL=+4.8% hold=6s reason=SELLER_EXIT [clean]
+    GRLC         entry=$  6410 exit=$  6410 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$14783]
+    PISTACHIO    entry=$ 21947 exit=$ 22661 PnL=+1.2% hold=58s reason=SELLER_EXIT [clean]
+    GOAT         entry=$ 13336 exit=$ 13266 PnL=-2.5% hold=9s reason=SELLER_EXIT [clean]
+    Dwuk         entry=$  9160 exit=$  9197 PnL=-1.6% hold=19s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$16484]
+    pumpcar      entry=$  7137 exit=$  6979 PnL=-4.2% hold=6s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$12986]
+    WATERGATE    entry=$  7087 exit=$  7836 PnL=+8.6% hold=6s reason=SELLER_EXIT [clean]
+    GOAT         entry=$ 13251 exit=$ 12925 PnL=-4.5% hold=16s reason=SELLER_EXIT [clean]
+    Dwuk         entry=$ 11466 exit=$ 11289 PnL=-3.5% hold=7s reason=SELLER_EXIT [clean]
+    pumpcar      entry=$  6918 exit=$  6918 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$12986]
+    GOAT         entry=$ 12316 exit=$ 14952 PnL=+19.4% hold=26s reason=TAKE_PROFIT [clean]
+    GRLC         entry=$  8654 exit=$  8802 PnL=-0.3% hold=22s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$14783]
+    MEM          entry=$  4131 exit=$  4131 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$9233]
+    pumprun      entry=$ 10679 exit=$ 10340 PnL=-5.2% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | BIG_LOSS_-5.2% | EXITED_EARLY_ATH_WAS_$16138]
+    Bulljak      entry=$ 11781 exit=$ 11978 PnL=-0.3% hold=13s reason=SELLER_EXIT [clean]
+    Tesoro       entry=$  5021 exit=$  4616 PnL=-10.1% hold=0s reason=STOP_LOSS [INSTANT_EXIT | BIG_LOSS_-10.1% | EXITED_EARLY_ATH_WAS_$20477]
+    pumprun      entry=$ 10334 exit=$  9956 PnL=-5.7% hold=2s reason=SELLER_EXIT [BIG_LOSS_-5.7% | EXITED_EARLY_ATH_WAS_$16138]
+    Bulljak      entry=$ 10846 exit=$ 12359 PnL=+12.0% hold=29s reason=SELLER_EXIT [clean]
+    WATERGATE    entry=$ 11406 exit=$ 11274 PnL=-3.2% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$24108]
+    pumprun      entry=$ 10083 exit=$ 10431 PnL=+1.4% hold=0s reason=SELLER_EXIT [INSTANT_EXIT]
+    Tonekko      entry=$  8267 exit=$  8712 PnL=+3.4% hold=7s reason=SELLER_EXIT [clean]
+    WATERGATE    entry=$ 11954 exit=$ 12116 PnL=-0.7% hold=31s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$24108]
+    GOAT         entry=$ 14328 exit=$ 14306 PnL=-2.1% hold=34s reason=SELLER_EXIT [clean]
+    Tonekko      entry=$  8469 exit=$  8560 PnL=-0.9% hold=55s reason=SELLER_EXIT [clean]
+    APE          entry=$ 19117 exit=$ 18887 PnL=-3.2% hold=1s reason=SELLER_EXIT [clean]
+    GOAT         entry=$ 12173 exit=$ 13471 PnL=+8.7% hold=44s reason=SELLER_EXIT [clean]
+    APE          entry=$ 20676 exit=$ 18451 PnL=-12.8% hold=7s reason=STOP_LOSS [BIG_LOSS_-12.8% | EXITED_EARLY_ATH_WAS_$28080]
+    APE          entry=$ 21755 exit=$ 21384 PnL=-3.7% hold=2s reason=SELLER_EXIT [clean]
+    APE          entry=$ 23054 exit=$ 23595 PnL=+0.3% hold=8s reason=SELLER_EXIT [clean]
+    APE          entry=$ 22593 exit=$ 22461 PnL=-2.6% hold=5s reason=SELLER_EXIT [clean]
+    GRLC         entry=$  7502 exit=$  9311 PnL=+22.1% hold=46s reason=TAKE_PROFIT [clean]
+    Memecoin     entry=$  4636 exit=$  4761 PnL=+0.7% hold=0s reason=SELLER_EXIT [INSTANT_EXIT]
+    KEN          entry=$  5817 exit=$  6730 PnL=+13.7% hold=2s reason=SELLER_EXIT [clean]
+    Memecoin     entry=$ 11152 exit=$ 10957 PnL=-3.8% hold=3s reason=SELLER_EXIT [clean]
+    ACTB         entry=$ 10551 exit=$ 10272 PnL=-4.6% hold=0s reason=SELLER_EXIT [INSTANT_EXIT]
+    PISTACHIO    entry=$ 21576 exit=$ 21576 PnL=-2.0% hold=12s reason=EMERGENCY_STOP [clean]
+    ACTB         entry=$ 10192 exit=$ 10280 PnL=-1.1% hold=3s reason=SELLER_EXIT [clean]
+    ACTB         entry=$ 10394 exit=$ 10060 PnL=-5.2% hold=5s reason=SELLER_EXIT [BIG_LOSS_-5.2%]
+    PISTACHIO    entry=$ 20978 exit=$ 20727 PnL=-3.2% hold=39s reason=SELLER_EXIT [clean]
+    WORLDWIDE    entry=$  7941 exit=$  7919 PnL=-2.3% hold=1s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$17695]
+    WORLDWIDE    entry=$ 12325 exit=$ 11858 PnL=-5.8% hold=7s reason=SELLER_EXIT [BIG_LOSS_-5.8%]
+    YŪKI         entry=$  9199 exit=$  9199 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT]
+    WORLDWIDE    entry=$ 12336 exit=$ 12336 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT]
+    KEN          entry=$  8268 exit=$  8361 PnL=-0.9% hold=10s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$14869]
+    Cat          entry=$  4297 exit=$  4823 PnL=+10.2% hold=184s reason=MAX_HOLD [clean]
+    Tesoro       entry=$  4776 exit=$  4717 PnL=-3.2% hold=32s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$20477]
+    GRLC         entry=$  6317 exit=$  6727 PnL=+4.5% hold=29s reason=SELLER_EXIT [clean]
+    PISTACHIO    entry=$ 23740 exit=$ 23270 PnL=-4.0% hold=51s reason=SELLER_EXIT [clean]
+    PISTACHIO    entry=$ 22745 exit=$ 23372 PnL=+0.8% hold=6s reason=SELLER_EXIT [clean]
+    Memecoin     entry=$ 10397 exit=$ 11191 PnL=+5.6% hold=36s reason=SELLER_EXIT [clean]
+    WOJAK        entry=$  6686 exit=$  6686 PnL=-2.0% hold=13s reason=EMERGENCY_STOP [EXITED_EARLY_ATH_WAS_$21075]
+    PISTACHIO    entry=$ 22937 exit=$ 21982 PnL=-6.2% hold=6s reason=STOP_LOSS [BIG_LOSS_-6.2%]
+    KEN          entry=$ 10847 exit=$ 10576 PnL=-4.5% hold=0s reason=SELLER_EXIT [INSTANT_EXIT]
+    Cat          entry=$  5365 exit=$  5858 PnL=+7.2% hold=4s reason=SELLER_EXIT [clean]
+    Scientology  entry=$  6455 exit=$  7863 PnL=+19.8% hold=17s reason=TAKE_PROFIT [clean]
+    Tesoro       entry=$  4911 exit=$  4911 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$20477]
+    PISTACHIO    entry=$ 19401 exit=$ 23365 PnL=+18.4% hold=35s reason=TAKE_PROFIT [clean]
+    MEM          entry=$  4871 exit=$  5549 PnL=+11.9% hold=67s reason=SELLER_EXIT [clean]
+    Memecoin     entry=$  9977 exit=$  9631 PnL=-5.5% hold=1s reason=SELLER_EXIT [INSTANT_EXIT | BIG_LOSS_-5.5%]
+    Memecoin     entry=$  8979 exit=$ 10287 PnL=+12.6% hold=16s reason=SELLER_EXIT [clean]
+    MEM          entry=$  5001 exit=$  4898 PnL=-4.1% hold=9s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$9233]
+    Scientology  entry=$  5681 exit=$  6208 PnL=+7.3% hold=83s reason=SELLER_EXIT [clean]
+    Memecoin     entry=$  9091 exit=$  8972 PnL=-3.3% hold=5s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$13888]
+    MEM          entry=$  4619 exit=$  5304 PnL=+12.8% hold=67s reason=SELLER_EXIT [clean]
+    Scientology  entry=$  5915 exit=$  5877 PnL=-2.6% hold=61s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$11894]
+    ALPHA        entry=$  4411 exit=$  4140 PnL=-8.1% hold=35s reason=STOP_LOSS [BIG_LOSS_-8.1% | EXITED_EARLY_ATH_WAS_$8773]
+    Cat          entry=$  5896 exit=$  5967 PnL=-0.8% hold=5s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$13237]
+    Cat          entry=$  6738 exit=$  6738 PnL=-2.0% hold=0s reason=NO_FOLLOWTHROUGH [INSTANT_EXIT | NO_FOLLOW_THROUGH | EXITED_EARLY_ATH_WAS_$13237]
+    Scientology  entry=$  5232 exit=$  5789 PnL=+8.6% hold=7s reason=SELLER_EXIT [clean]
+    Tesoro       entry=$  5514 exit=$  5451 PnL=-3.1% hold=1s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$20477]
+    Cat          entry=$  7489 exit=$  7455 PnL=-2.5% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$13237]
+    Tesoro       entry=$  6434 exit=$  6407 PnL=-2.4% hold=32s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$20477]
+    Tesoro       entry=$  6426 exit=$  6426 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$20477]
+    Tesoro       entry=$  6945 exit=$  7861 PnL=+11.2% hold=20s reason=SELLER_EXIT [clean]
+    Haku         entry=$  7579 exit=$  7250 PnL=-6.3% hold=11s reason=STOP_LOSS [BIG_LOSS_-6.3% | EXITED_EARLY_ATH_WAS_$21243]
+    Tesoro       entry=$  7556 exit=$  7124 PnL=-7.7% hold=0s reason=STOP_LOSS [INSTANT_EXIT | BIG_LOSS_-7.7% | EXITED_EARLY_ATH_WAS_$20477]
+    Tesoro       entry=$  8855 exit=$  9942 PnL=+10.3% hold=6s reason=SELLER_EXIT [clean]
+    Haku         entry=$  7648 exit=$  7579 PnL=-2.9% hold=116s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$21243]
+    Tesoro       entry=$  8753 exit=$  8947 PnL=+0.2% hold=0s reason=SELLER_EXIT [INSTANT_EXIT]
+    Tesoro       entry=$  9133 exit=$  8887 PnL=-4.7% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$20477]
+    Tesoro       entry=$ 11729 exit=$ 11729 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$20477]
+    Tesoro       entry=$ 12204 exit=$ 12620 PnL=+1.4% hold=9s reason=SELLER_EXIT [clean]
+    Tesoro       entry=$ 11572 exit=$ 11572 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$20477]
+    WATERGATE    entry=$ 10567 exit=$ 10719 PnL=-0.6% hold=30s reason=TRAIL_STOP [EXITED_EARLY_ATH_WAS_$24108]
+    Tesoro       entry=$ 12280 exit=$ 12660 PnL=+1.1% hold=0s reason=SELLER_EXIT [INSTANT_EXIT]
+    Tesoro       entry=$ 12695 exit=$ 12474 PnL=-3.7% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$20477]
+    Tesoro       entry=$ 11812 exit=$ 11812 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$20477]
+    Tesoro       entry=$ 15809 exit=$ 17162 PnL=+6.6% hold=2s reason=SELLER_EXIT [clean]
+    WATERGATE    entry=$  8441 exit=$ 10261 PnL=+19.6% hold=10s reason=TAKE_PROFIT [clean]
+    Tesoro       entry=$ 18358 exit=$ 18204 PnL=-2.8% hold=0s reason=NO_FOLLOWTHROUGH [INSTANT_EXIT | NO_FOLLOW_THROUGH]
+    WeClone      entry=$  7047 exit=$  7047 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$17223]
+    WATERGATE    entry=$ 11517 exit=$ 10702 PnL=-9.1% hold=13s reason=STOP_LOSS [BIG_LOSS_-9.1% | EXITED_EARLY_ATH_WAS_$24108]
+    WATERGATE    entry=$ 10971 exit=$ 10992 PnL=-1.8% hold=2s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$24108]
+    WATERGATE    entry=$ 10286 exit=$ 10500 PnL=+0.1% hold=34s reason=SELLER_EXIT [clean]
+    WATERGATE    entry=$ 10329 exit=$ 10236 PnL=-2.9% hold=16s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$24108]
+
+  MARKET COVERAGE
+    Significant coins (ATH>$15K): 8
+    Bonded coins: 69
+    WE CAUGHT: 6 | WE MISSED: 2 | Coverage: 75.0%
+
+    -- CAUGHT (top 10) --
+    Hairlines    ATH=$  56,062 MC=$  49,419 state=FLOORED traded=False
+    WATERGATE    ATH=$  24,108 MC=$   9,446 state=FLOORED traded=True
+    10CENTS      ATH=$  18,902 MC=$  14,929 state=CLOSED traded=True
+    Dwuk         ATH=$  16,484 MC=$  11,022 state=FLOORED traded=True
+    pumprun      ATH=$  16,138 MC=$  12,794 state=ARMED traded=True
+    bullicle     ATH=$  15,743 MC=$  15,507 state=FLOORED traded=False
+
+    -- MISSED (top 15) --
+    Wagie        ATH=$  85,106 MC=$  59,510 bonded=True WHY: BONDED_DURING_SESSION, NEVER_DISCOVERED
+    BILL         ATH=$  22,431 MC=$   4,268 bonded=False WHY: IN_NURSERY_NOT_PROMOTED
+
+  GATE COMPLIANCE
+    Violations: 7 | Stuck WATCHING: 0 | Stale: 286
+    !! TAP armed but HISTORY fails: only 3 total trades (hist:0 live:3), need 10
+    !! shitcoin armed but SELL_PRESSURE fails: sell pressure: 3.56 SOL sold vs 0.29 bought
+    !! ALPHA armed but SELL_PRESSURE fails: sell pressure: 0.32 SOL sold vs 0.11 bought
+    !! KEN armed but RE_ENTRY fails: price $7802 is 10%+ above last exit $6730 — not chasing
+    !! WOJAK armed but HISTORY fails: only 3 total trades (hist:0 live:3), need 10
+    !! pumprun armed but RE_ENTRY fails: price $12714 is 10%+ above last exit $10340 — not chasing
+    !! pumpcar armed but HISTORY fails: only 3 total trades (hist:0 live:3), need 10
+
+  ERROR ACCOUNTING
+    Spot-checked: 10 tokens
+    Data errors found: 1
+    [MC_DRIFT] hotdog: PumpPortal may have stopped sending ticks, or our refresh failed
+
+  POSSIBLE ERROR SOURCES (to account for in analysis)
+    - PumpPortal: can misclassify buy/sell, report stale solAmount, silently drop subscriptions
+    - Our bot: MC direction override can flip sells to buys for catalyst, floor detection on thin data
+    - Pump.fun API: phantom MC (real_sol=0 but high MC), stale ATH, delayed migration status
+
+  RECOMMENDATIONS FOR NEXT SESSION
+    1. GATE_VIOLATIONS: 7 tokens armed with failing gates. Fix the state machine before next session.
+    2. STALENESS: 286/358 tokens stale. PP re-subscribe or API refresh may be failing.
+    3. DATA_ERRORS: 1 data integrity issues found. See errorAccounting for details.
+    4. MISSED_BONDED: Wagie bonded during session (ATH $85,106) but we didn't catch it. Root cause: ['BONDED_DURING_SESSION', 'NEVER_DISCOVERED']
+
+  Log saved to: /Users/kashanrana/Downloads/Printar/2wallets/./data/session_6_2026-04-13T19-04.jsonl
+================================================================================
+
+[2026-04-13 19:05:22] Session 6 review done.
+[2026-04-13 19:05:22] 
+[2026-04-13 19:05:22] 
+[2026-04-13 19:05:22] ################################################################
+[2026-04-13 19:05:22]   FINAL SESSION 7 — 6-HOUR SUMMARY
+[2026-04-13 19:05:22] ################################################################
+[2026-04-13 19:05:22] [FINAL] Taking state snapshot...
+  Version: 2.11.0
+  Registry: ? | Nursery: 81 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 92 | WR: 40.2%
+  States: {}
+[2026-04-13 19:05:23] 
+[2026-04-13 19:05:23] 6-HOUR TRAINING COMPLETE. Review master log: ./data/training_master_2026-04-13T13-01-15.log
+[2026-04-13 19:05:23] Individual session logs in: ./data/

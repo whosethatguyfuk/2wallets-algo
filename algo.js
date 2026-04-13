@@ -1,5 +1,5 @@
 /**
- * algo.js — STATE MACHINE ENGINE
+ * algo.js — STATE MACHINE ENGINE  (v3.0 — DCA hold strategy)
  *
  * This file owns the state machine. It does NOT:
  *   - Connect to any WebSocket
@@ -12,18 +12,21 @@
  *   - Transitions token state
  *   - Emits trade events back to the runner
  *
- * The runner handles all I/O. The algo handles all decisions.
- * They communicate through clean interfaces. No leaking.
+ * v3.0 — "Bid the floor, hold for 2-3x, DCA sell out."
+ *   Entry logic unchanged. Exit completely reworked:
+ *     - DCA tranches at 2x, 2.5x, 3x
+ *     - Hard stop on floor break (10% below entry floor)
+ *     - Bond cap sell at $55K
+ *     - 45 min max hold
  */
 
-import { STATE, MIN_HOLD_SECS, REENTRY_COOLDOWN_SECS,
+import { STATE,
          ARM_TIMEOUT_SECS, TRADE_FEE_PCT, POSITION_SOL,
          MAX_TRADES_PER_TOKEN, FLOOR_TOUCH_PCT,
-         FLOOR_ARM_ZONE_PCT, STOP_LOSS_PCT,
+         FLOOR_ARM_ZONE_PCT,
          ENTRY_MC_MIN, ROUND2_PUMP_MULT,
          JITO_ROUND2_MIN_ATH, HISTORY_MIN_TRADES,
-         PROVEN_COOLDOWN_SECS, PROVEN_LOSS_COOLDOWN,
-         PROVEN_ARM_ZONE_PCT } from './rules.js';
+         REENTRY_COOLDOWN_SECS } from './rules.js';
 
 import { runEntryGates, runExitGates, floorGate } from './gates.js';
 
@@ -32,11 +35,9 @@ export function makeToken(mint, symbol, name, category) {
   return {
     mint, symbol, name, category,
 
-    // State machine
     state:           STATE.WATCHING,
     stateChangedAt:  Date.now(),
 
-    // Price structure
     currentMc:       0,
     sessionHigh:     0,
     sessionLow:      Infinity,
@@ -44,35 +45,25 @@ export function makeToken(mint, symbol, name, category) {
     vSol:            0,
     prevMcSol:       0,
 
-    // History
     historyLoaded:   false,
     historyTrades:   0,
     liveTrades:      0,
 
-    // Quality
     uniqueBuyers:    new Set(),
     maxEarlyBuySol:  0,
     mayhemDetected:  false,
 
-    // Jito bundle detection (replaces old heuristic)
     jitoBundle:      false,
     jitoBundleSlot:  null,
     bundlePeakMc:    0,
 
-    // Floor
     floorMc:         null,
     floorTouches:    0,
 
-    // Arm
     armedAt:         0,
-
-    // Nursery graduate — we have complete data from birth
     isNurseryGrad:   false,
-
-    // Proven flag — never prune if true
     proven:          false,
 
-    // Trade tracking
     activeTrade:     null,
     lastExitMc:      null,
     cooldownUntil:   0,
@@ -83,7 +74,7 @@ export function makeToken(mint, symbol, name, category) {
   };
 }
 
-// ── State transition — always logged, always explicit ────────────
+// ── State transition ─────────────────────────────────────────────
 function transition(token, newState, reason, log) {
   const oldState = token.state;
   token.state          = newState;
@@ -94,7 +85,7 @@ function transition(token, newState, reason, log) {
   });
 }
 
-// ── Price structure update ────────────────────────────────────────
+// ── Price structure update ───────────────────────────────────────
 export function updatePrice(token, mc, ts, isBuy, sol) {
   token.mcHistory.push({ mc, ts, isBuy, sol });
   const cutoff = ts - 300_000;
@@ -105,9 +96,6 @@ export function updatePrice(token, mc, ts, isBuy, sol) {
   token.lastTickTs = ts;
   if (mc > token.sessionHigh) token.sessionHigh = mc;
 
-  // Rolling 5-min floor: sessionLow = minimum of the recent buffer.
-  // Old dips naturally age out, so the floor rises with the market.
-  // With <5 ticks, use traditional all-time-low behavior for stability.
   if (token.mcHistory.length >= 5) {
     let bufMin = Infinity;
     for (const h of token.mcHistory) { if (h.mc < bufMin) bufMin = h.mc; }
@@ -124,9 +112,7 @@ export function updatePrice(token, mc, ts, isBuy, sol) {
   }
 }
 
-// ── Jito bundle price reset ──────────────────────────────────────
-// Called by runner after same-slot detection confirms a Jito bundle.
-// Wipes the bundler's price data so round-2 floor detection is clean.
+// ── Jito bundle price reset ─────────────────────────────────────
 export function applyJitoBundleReset(token, log) {
   token.jitoBundle = true;
   token.bundlePeakMc = token.sessionHigh;
@@ -142,37 +128,33 @@ export function applyJitoBundleReset(token, log) {
   });
 }
 
-// ── Main tick function ────────────────────────────────────────────
+// ── Main tick function ───────────────────────────────────────────
 export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
   updatePrice(token, mc, ts, isBuy, sol);
 
-  const now = Date.now();
+  const now    = Date.now();
   const nowSec = now / 1000;
 
-  // ══════════════════════════════════════════════════════════════
-  // FIREWALL — mayhem agent only. Jito bundles are NOT blacklisted
-  // here; they follow the round-2 path instead.
-  // ══════════════════════════════════════════════════════════════
+  // ── FIREWALL ───────────────────────────────────────────────────
   if (token.state !== STATE.BLACKLISTED && token.state !== STATE.CLOSED) {
     if (token.mayhemDetected) {
-      transition(token, STATE.BLACKLISTED, `FIREWALL: mayhem agent detected`, log);
+      transition(token, STATE.BLACKLISTED, `FIREWALL: mayhem agent`, log);
       return token.state === STATE.ARMED ? { type: 'DISARM', token } : null;
     }
-    // Jito bundle with ATH too low to be worth round-2
     if (token.jitoBundle && (token.bundlePeakMc || 0) < JITO_ROUND2_MIN_ATH && token.bundlePeakMc > 0) {
-      transition(token, STATE.BLACKLISTED, `FIREWALL: jito bundle + ATH $${Math.round(token.bundlePeakMc)} < $${JITO_ROUND2_MIN_ATH}`, log);
+      transition(token, STATE.BLACKLISTED, `FIREWALL: jito bundle ATH $${Math.round(token.bundlePeakMc)} < $${JITO_ROUND2_MIN_ATH}`, log);
       return token.state === STATE.ARMED ? { type: 'DISARM', token } : null;
     }
   }
 
-  // ── If in trade: manage exit ──────────────────────────────────
+  // ── IN TRADE: manage DCA exits ─────────────────────────────────
   if (token.state === STATE.HOLDING || token.state === STATE.EXIT_UNLOCKED) {
-    const trade   = token.activeTrade;
+    const trade = token.activeTrade;
     if (!trade) return null;
 
-    trade.currentMc  = mc;
-    trade.totalVol  += sol;
-    trade.tickCount  = (trade.tickCount || 0) + 1;
+    trade.currentMc   = mc;
+    trade.totalVol   += sol;
+    trade.tickCount   = (trade.tickCount || 0) + 1;
     if (isBuy) trade.buyVol  += sol;
     else       trade.sellVol += sol;
     if (mc > trade.peakMc) trade.peakMc = mc;
@@ -180,31 +162,26 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     const holdSec = (now - trade.entryTs) / 1000;
 
     if (token.state === STATE.HOLDING) {
-      transition(token, STATE.EXIT_UNLOCKED, `order-flow mode: exit gates active immediately`, log);
-    }
-
-    if (trade.buyVol === 0 && (trade.tickCount >= 5 || holdSec >= 10)) {
-      log('EXIT_GATE', token.symbol, token.mint, { gate: 'NO_FOLLOWTHROUGH', ticks: trade.tickCount, holdSec: holdSec.toFixed(1) });
-      return closeTrade(token, mc, now, 'NO_FOLLOWTHROUGH', log);
+      transition(token, STATE.EXIT_UNLOCKED, `exits active`, log);
     }
 
     const exitResult = runExitGates(trade, token, isBuy, sol, holdSec, log);
     if (exitResult.exit) {
-      return closeTrade(token, mc, now, exitResult.reason, log);
+      if (exitResult.sellAll) {
+        return closeTrade(token, mc, now, exitResult.reason, log);
+      }
+      return sellTranche(token, mc, now, exitResult, log);
     }
 
     return null;
   }
 
-  // ── BUYING state ───────────────────────────────────────────────
-  if (token.state === STATE.BUYING) {
-    return null;
-  }
+  // ── BUYING ─────────────────────────────────────────────────────
+  if (token.state === STATE.BUYING) return null;
 
-  // ── WATCHING: waiting for history / enough data ────────────────
+  // ── WATCHING ───────────────────────────────────────────────────
   if (token.state === STATE.WATCHING) {
     token.liveTrades = (token.liveTrades || 0) + 1;
-
     const totalKnown = (token.historyTrades || 0) + (token.liveTrades || 0);
     const minTrades  = (token.isSeeded || token.isNurseryGrad) ? 3 : 10;
     if (token.historyLoaded && totalKnown >= minTrades) {
@@ -213,7 +190,7 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     return null;
   }
 
-  // ── INDEXED: check if floor is confirmed ───────────────────────
+  // ── INDEXED ────────────────────────────────────────────────────
   if (token.state === STATE.INDEXED) {
     const fg = floorGate(token);
     if (fg.pass) {
@@ -223,7 +200,7 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     return null;
   }
 
-  // ── FLOORED: wait for price to reach arm zone ──────────────────
+  // ── FLOORED ────────────────────────────────────────────────────
   if (token.state === STATE.FLOORED) {
     const fg = floorGate(token);
     if (!fg.pass) {
@@ -234,10 +211,8 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
 
     const floor      = token.sessionLow;
     const aboveFloor = (mc - floor) / floor;
-
-    const isProven = (token.winCount || 0) >= 1;
+    const isProven   = (token.winCount || 0) >= 1;
     const hasRealPump = isProven || token.sessionHigh > floor * 1.30;
-    const effectiveArmZone = isProven ? PROVEN_ARM_ZONE_PCT : FLOOR_ARM_ZONE_PCT;
 
     if (token.jitoBundle) {
       const round2Ready = token.sessionHigh > floor * ROUND2_PUMP_MULT;
@@ -249,21 +224,18 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
       if (totalKnownArm < HISTORY_MIN_TRADES) return null;
     }
 
-    if (aboveFloor <= effectiveArmZone && mc > floor * 0.85 && hasRealPump && mc >= ENTRY_MC_MIN) {
+    if (aboveFloor <= FLOOR_ARM_ZONE_PCT && mc > floor * 0.85 && hasRealPump && mc >= ENTRY_MC_MIN) {
       token.armedAt = nowSec;
-      token.confirmedFloorTouches = Math.max(
-        token.historyFloorTouches || 0,
-        token.floorTouches || 0
-      );
+      token.confirmedFloorTouches = Math.max(token.historyFloorTouches || 0, token.floorTouches || 0);
       const r2 = token.jitoBundle ? ' [ROUND-2]' : '';
-      transition(token, STATE.ARMED, `in arm zone: ${(aboveFloor*100).toFixed(1)}% above floor $${floor.toFixed(0)} (high $${token.sessionHigh.toFixed(0)})${r2}`, log);
+      transition(token, STATE.ARMED, `arm zone: ${(aboveFloor*100).toFixed(1)}% above $${floor.toFixed(0)}${r2}`, log);
       return { type: 'ARM', token };
     }
 
     return null;
   }
 
-  // ── ARMED: waiting for catalyst ────────────────────────────────
+  // ── ARMED ──────────────────────────────────────────────────────
   if (token.state === STATE.ARMED) {
     if (nowSec - token.armedAt > ARM_TIMEOUT_SECS) {
       transition(token, STATE.FLOORED, `arm timeout (${ARM_TIMEOUT_SECS}s)`, log);
@@ -273,18 +245,16 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     const floor      = token.sessionLow;
     const aboveFloor = (mc - floor) / floor;
     if (aboveFloor > FLOOR_ARM_ZONE_PCT * 1.5) {
-      transition(token, STATE.FLOORED, `price moved ${(aboveFloor*100).toFixed(1)}% above floor — disarming`, log);
+      transition(token, STATE.FLOORED, `price ${(aboveFloor*100).toFixed(1)}% above floor — disarming`, log);
       return { type: 'DISARM', token };
     }
 
     if (mc < ENTRY_MC_MIN) {
-      transition(token, STATE.FLOORED, `MC $${mc.toFixed(0)} dropped below min $${ENTRY_MC_MIN}`, log);
+      transition(token, STATE.FLOORED, `MC $${mc.toFixed(0)} < $${ENTRY_MC_MIN}`, log);
       return { type: 'DISARM', token };
     }
 
-    if (process.env.REAL_TRADING === 'true' && !isLaser) {
-      return null;
-    }
+    if (process.env.REAL_TRADING === 'true' && !isLaser) return null;
 
     const entryResult = runEntryGates(token, isBuy, sol, mc, openCount, log);
     if (!entryResult.pass) {
@@ -297,24 +267,21 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     return { type: 'OPEN_TRADE', token };
   }
 
-  // ── CLOSED / BLACKLISTED / COOLDOWN ────────────────────────────
+  // ── CLOSED ─────────────────────────────────────────────────────
   if (token.state === STATE.CLOSED) {
     if (nowSec < token.cooldownUntil) return null;
     if (token.tradeCount >= MAX_TRADES_PER_TOKEN) {
-      transition(token, STATE.BLACKLISTED, `trade cap hit (${token.tradeCount})`, log);
+      transition(token, STATE.BLACKLISTED, `trade cap (${token.tradeCount})`, log);
       return null;
     }
-    const closedIsProven = (token.winCount || 0) >= 1;
-    const closedArmZone = closedIsProven ? PROVEN_ARM_ZONE_PCT : FLOOR_ARM_ZONE_PCT;
     const closedFloor = token.sessionLow || 0;
     const closedAbove = closedFloor > 0 ? (mc - closedFloor) / closedFloor : 1;
-    if (closedAbove <= closedArmZone && mc >= ENTRY_MC_MIN && closedFloor > 0) {
+    if (closedAbove <= FLOOR_ARM_ZONE_PCT && mc >= ENTRY_MC_MIN && closedFloor > 0) {
       token.armedAt = nowSec;
-      const pTag = closedIsProven ? ' [PROVEN]' : '';
-      transition(token, STATE.ARMED, `re-armed at floor (${(closedAbove*100).toFixed(1)}% above $${closedFloor.toFixed(0)})${pTag}`, log);
+      transition(token, STATE.ARMED, `re-armed (${(closedAbove*100).toFixed(1)}% above $${closedFloor.toFixed(0)})`, log);
       return { type: 'ARM', token };
     }
-    transition(token, STATE.FLOORED, 'cooldown expired, re-watching floor', log);
+    transition(token, STATE.FLOORED, 'cooldown expired', log);
     return null;
   }
 
@@ -333,6 +300,7 @@ export function confirmBuy(token, entryMc, buySignature, tokensReceived, log) {
     id:            `${token.mint.slice(0,6)}_${token.tradeCount + 1}`,
     entryMc,
     entryTs:       now,
+    entryFloor:    token.sessionLow || entryMc,   // floor at entry — used for floor-break stop
     peakMc:        entryMc,
     currentMc:     entryMc,
     buySignature,
@@ -340,132 +308,149 @@ export function confirmBuy(token, entryMc, buySignature, tokensReceived, log) {
     buyVol:        0,
     sellVol:       0,
     totalVol:      0,
+    tickCount:     0,
+
+    // DCA tracking
+    tranchesSold:  0,          // 0, 1, 2, or 3
+    soldPct:       0,          // cumulative % sold (0.0 → 1.0)
+    partialSells:  [],         // { tranche, pct, mc, ts, pnlPct }
+    positionSol:   POSITION_SOL,
+    remainingSol:  POSITION_SOL,
   };
 
   token.tradeCount++;
-  transition(token, STATE.HOLDING, `buy confirmed at $${entryMc.toFixed(0)}`, log);
+  transition(token, STATE.HOLDING, `buy confirmed at $${entryMc.toFixed(0)} (floor $${token.activeTrade.entryFloor.toFixed(0)})`, log);
   log('TRADE_OPEN', token.symbol, token.mint, {
-    entryMc: Math.round(entryMc), sig: buySignature?.slice(0,12),
+    entryMc: Math.round(entryMc),
+    entryFloor: Math.round(token.activeTrade.entryFloor),
+    sig: buySignature?.slice(0,12),
     tradeId: token.activeTrade.id,
   });
 
   return token.activeTrade;
 }
 
-// ── Close trade ──────────────────────────────────────────────────
-function closeTrade(token, mc, now, reason, log) {
-  const trade   = token.activeTrade;
-  const holdSec = (now - trade.entryTs) / 1000;
+// ── Sell one DCA tranche ─────────────────────────────────────────
+function sellTranche(token, mc, now, exitResult, log) {
+  const trade = token.activeTrade;
+  if (!trade) return null;
 
-  let exitMc = mc;
-  // Only apply stop-loss floor cap in real trading (limit orders protect us).
-  // In paper mode, show actual slipped exit for honest PnL.
-  if (process.env.REAL_TRADING === 'true') {
-    const worstMc = trade.entryMc * (1 - STOP_LOSS_PCT / 100);
-    if (exitMc < worstMc) exitMc = worstMc;
+  const tranche   = exitResult.tranche;
+  const pctToSell = exitResult.pct;
+  const solToSell = trade.positionSol * pctToSell;
+  const pnlPct    = (mc - trade.entryMc) / trade.entryMc * 100;
+
+  const partial = {
+    tranche,
+    pct: pctToSell,
+    mc,
+    ts: now,
+    pnlPct: +(pnlPct - TRADE_FEE_PCT * 100).toFixed(2),
+    solSold: +solToSell.toFixed(4),
+  };
+
+  trade.partialSells.push(partial);
+  trade.tranchesSold = tranche;
+  trade.soldPct     += pctToSell;
+  trade.remainingSol = +(trade.remainingSol - solToSell).toFixed(4);
+
+  log('DCA_SELL', token.symbol, token.mint, {
+    tranche,
+    pct: +(pctToSell * 100).toFixed(0),
+    mc: Math.round(mc),
+    entryMc: Math.round(trade.entryMc),
+    pnlPct: partial.pnlPct,
+    solSold: partial.solSold,
+    remaining: trade.remainingSol,
+    mult: +(mc / trade.entryMc).toFixed(2),
+  });
+
+  // If all 3 tranches sold, close the trade
+  if (trade.tranchesSold >= 3 || trade.remainingSol <= 0.001) {
+    return closeTradeFull(token, mc, now, 'DCA_COMPLETE', log);
   }
 
-  const pnlRaw = (exitMc - trade.entryMc) / trade.entryMc * 100;
-  const pnl    = pnlRaw - (TRADE_FEE_PCT * 100);
+  // Still holding remaining position — emit partial sell event for runner
+  return { type: 'PARTIAL_SELL', token, trade, partial };
+}
+
+// ── Close trade (full exit) ──────────────────────────────────────
+function closeTrade(token, mc, now, reason, log) {
+  return closeTradeFull(token, mc, now, reason, log);
+}
+
+function closeTradeFull(token, mc, now, reason, log) {
+  const trade   = token.activeTrade;
+  if (!trade) return null;
+  const holdSec = (now - trade.entryTs) / 1000;
+
+  // Calculate blended PnL from partial sells + remaining position
+  let totalReturn = 0;
+  for (const p of trade.partialSells) {
+    totalReturn += p.solSold * (1 + p.pnlPct / 100);
+  }
+  // Remaining unsold position exits at current MC
+  const remainPnlPct = (mc - trade.entryMc) / trade.entryMc * 100 - (TRADE_FEE_PCT * 100);
+  totalReturn += trade.remainingSol * (1 + remainPnlPct / 100);
+  const blendedPnl = ((totalReturn / trade.positionSol) - 1) * 100;
 
   const record = {
     ...trade,
-    exitMc,
-    exitTs:  now,
+    exitMc:       mc,
+    exitTs:       now,
     holdSec,
-    pnlPct:  pnl,
+    pnlPct:       +blendedPnl.toFixed(2),
     reason,
+    partialSells: [...trade.partialSells],
+    tranchesSold: trade.tranchesSold,
   };
 
   token.closedTrades.push(record);
   token.activeTrade  = null;
-  token.lastExitMc   = exitMc;
+  token.lastExitMc   = mc;
 
-  if (pnl > 0) token.winCount = (token.winCount || 0) + 1;
-  const isProvenNow = (token.winCount || 0) >= 1;
+  if (blendedPnl > 0) token.winCount = (token.winCount || 0) + 1;
 
-  // ── Trailing floor: after a WIN, raise the floor to capture higher scalp levels ──
-  const oldFloor = token.sessionLow || 0;
-  if (pnl > 0 && trade.entryMc > oldFloor * 1.05) {
-    const newFloor = Math.min(trade.entryMc, exitMc);
-    token.sessionLow = newFloor;
-    // Proven tokens: set to 1 so they only need 1 more bounce (not 2)
-    token.floorTouches = isProvenNow ? 1 : 0;
-    token.sessionHigh = Math.max(token.sessionHigh, exitMc);
-    log('FLOOR_RAISED', token.symbol, token.mint, {
-      oldFloor: Math.round(oldFloor),
-      newFloor: Math.round(newFloor),
-      proven: isProvenNow,
-      reason: `winning trade +${pnl.toFixed(1)}%`,
-    });
-  }
-
-  const floor = token.sessionLow || 0;
-  const exitAboveFloor = floor > 0 ? (exitMc - floor) / floor : 1;
-  const exitedAtFloor = exitAboveFloor <= FLOOR_ARM_ZONE_PCT;
-
-  const recentTrades = token.closedTrades.slice(-3);
-  const consecutiveLosses = recentTrades.length > 0
-    ? recentTrades.reverse().findIndex(t => t.pnlPct > 0)
-    : 0;
-  const lossStreak = consecutiveLosses === -1 ? recentTrades.length : consecutiveLosses;
-
-  // Token health: if WR drops below 25% after 5+ trades, slow down or stop
+  // Token health check — prevent overtrading on losers
   const totalTrades = token.closedTrades.length;
-  const totalWins = token.closedTrades.filter(t => t.pnlPct > 0).length;
-  const tokenWR = totalTrades > 0 ? totalWins / totalTrades : 1;
-  const isSick = totalTrades >= 5 && tokenWR < 0.25;
+  const totalWins   = token.closedTrades.filter(t => t.pnlPct > 0).length;
+  const tokenWR     = totalTrades > 0 ? totalWins / totalTrades : 1;
 
-  if (totalTrades >= 8 && tokenWR < 0.25) {
+  if (totalTrades >= 4 && tokenWR < 0.25) {
     token.cooldownUntil = now / 1000 + 600;
     log('TOKEN_SICK', token.symbol, token.mint, {
       wr: +(tokenWR * 100).toFixed(0), trades: totalTrades, wins: totalWins,
-      action: 'blacklist-cooldown 10min',
+      action: 'cooldown 10min',
     });
-    transition(token, STATE.CLOSED, `${reason} at $${exitMc.toFixed(0)} (${pnl > 0 ? '+' : ''}${pnl.toFixed(1)}%) — token sick WR ${(tokenWR*100).toFixed(0)}%`, log);
-    log('TRADE_CLOSE', token.symbol, token.mint, {
-      tradeId: record.id, entryMc: Math.round(trade.entryMc), exitMc: Math.round(exitMc),
-      pnlPct: +pnl.toFixed(2), holdSec: +holdSec.toFixed(1), reason,
-    });
-    return { type: 'CLOSE_TRADE', token, trade: record, reason, exitMc };
-  }
-
-  let baseCooldown;
-  if (isSick) {
-    baseCooldown = 300;
-  } else if (isProvenNow) {
-    baseCooldown = PROVEN_COOLDOWN_SECS;
-    if (lossStreak >= 3) baseCooldown = PROVEN_LOSS_COOLDOWN;
-  } else if (exitedAtFloor) {
-    baseCooldown = 5;
-  } else if (reason === 'STOP_LOSS' || reason === 'CONVICTION_FADE') {
-    baseCooldown = 120;
+  } else if (reason === 'FLOOR_BREAK') {
+    token.cooldownUntil = now / 1000 + 300;
   } else {
-    baseCooldown = REENTRY_COOLDOWN_SECS;
+    token.cooldownUntil = now / 1000 + REENTRY_COOLDOWN_SECS;
   }
-  if (!isProvenNow && lossStreak >= 3) baseCooldown = Math.max(baseCooldown, 300);
-  token.cooldownUntil = now / 1000 + baseCooldown;
 
-  transition(token, STATE.CLOSED, `${reason} at $${exitMc.toFixed(0)} (${pnl > 0 ? '+' : ''}${pnl.toFixed(1)}%)`, log);
+  transition(token, STATE.CLOSED, `${reason} at $${mc.toFixed(0)} (${blendedPnl > 0 ? '+' : ''}${blendedPnl.toFixed(1)}%) [${trade.tranchesSold}/3 tranches sold]`, log);
 
   log('TRADE_CLOSE', token.symbol, token.mint, {
-    tradeId:  record.id,
-    entryMc:  Math.round(trade.entryMc),
-    exitMc:   Math.round(exitMc),
-    pnlPct:   +pnl.toFixed(2),
-    holdSec:  +holdSec.toFixed(1),
+    tradeId:       record.id,
+    entryMc:       Math.round(trade.entryMc),
+    exitMc:        Math.round(mc),
+    pnlPct:        +blendedPnl.toFixed(2),
+    holdSec:       +holdSec.toFixed(1),
     reason,
+    tranchesSold:  trade.tranchesSold,
+    partialSells:  trade.partialSells.length,
+    peakMult:      +(trade.peakMc / trade.entryMc).toFixed(2),
   });
 
-  return { type: 'CLOSE_TRADE', token, trade: record, reason, exitMc };
+  return { type: 'CLOSE_TRADE', token, trade: record, reason, exitMc: mc };
 }
 
-// ── Force close (emergency / watchdog / restart) ─────────────────
+// ── Force close ──────────────────────────────────────────────────
 export function forceClose(token, currentMc, log) {
   if (!token.activeTrade && token.state !== STATE.BUYING) return null;
   if (token.state === STATE.BUYING) {
     transition(token, STATE.CLOSED, 'emergency stop during buy', log);
     return { type: 'CLOSE_TRADE', token, trade: null, reason: 'EMERGENCY_STOP', exitMc: currentMc };
   }
-  return closeTrade(token, currentMc || 4000, Date.now(), 'EMERGENCY_STOP', log);
+  return closeTradeFull(token, currentMc || 4000, Date.now(), 'EMERGENCY_STOP', log);
 }

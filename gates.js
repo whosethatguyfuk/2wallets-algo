@@ -5,8 +5,8 @@
  * No side effects. No async. No mutations.
  * Each gate is independently testable.
  *
- * Gates are called IN ORDER by the state machine.
- * A token cannot reach gate N without passing gate N-1.
+ * v3.0 — DCA exit strategy. No more SELLER_EXIT / TRAIL / scalp TP.
+ * We bid the floor, hold for 2-3x, DCA sell out. Floor break = hard stop.
  */
 
 import {
@@ -17,11 +17,9 @@ import {
   CATALYST_MIN_SOL,
   MAX_CONCURRENT, MAX_TRADES_PER_TOKEN,
   REENTRY_MAX_ABOVE_EXIT, REENTRY_COOLDOWN_SECS,
-  SELLER_EXIT_SOL, STOP_LOSS_PCT, TAKE_PROFIT_PCT,
-  TRAIL_ACTIVATE_PCT, TRAIL_KEEP_PCT, MAX_HOLD_SECS,
-  MIN_HOLD_SECS,
+  DCA_TRANCHE_1_MULT, DCA_TRANCHE_2_MULT, DCA_TRANCHE_3_MULT,
+  FLOOR_BREAK_PCT, MAX_HOLD_SECS, BOND_MC_SELL,
   MAYHEM_AGENT_WALLET, STATE,
-  PROVEN_FLOOR_TOUCHES, PROVEN_REENTRY_ABOVE_EXIT, PROVEN_ARM_ZONE_PCT,
 } from './rules.js';
 
 // ── helpers ──────────────────────────────────────────────────────
@@ -29,10 +27,13 @@ const pass = (reason)        => ({ pass: true,  reason });
 const fail = (reason)        => ({ pass: false, reason });
 const pct  = (a, b)          => ((a - b) / b * 100).toFixed(1) + '%';
 
-// ── GATE 1: History Gate ─────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// ENTRY GATES (mostly unchanged)
+// ═══════════════════════════════════════════════════════════════════
+
 export function historyGate(token) {
   if ((token.winCount || 0) >= 1)
-    return pass(`proven token (${token.winCount} wins) — history already validated`);
+    return pass(`proven token (${token.winCount} wins)`);
   if (!token.historyLoaded)
     return fail(`history not loaded yet`);
   if (token.isNurseryGrad)
@@ -41,196 +42,155 @@ export function historyGate(token) {
     return pass(`${token.floorTouches} floor touches — data quality proven`);
   const total = (token.historyTrades || 0) + (token.liveTrades || 0);
   if (total < HISTORY_MIN_TRADES)
-    return fail(`only ${total} total trades (hist:${token.historyTrades} live:${token.liveTrades||0}), need ${HISTORY_MIN_TRADES}`);
+    return fail(`only ${total} total trades, need ${HISTORY_MIN_TRADES}`);
   return pass(`history ok (${token.historyTrades} on-chain + ${token.liveTrades||0} live)`);
 }
 
-// ── GATE 2: Quality Gate ─────────────────────────────────────────
-// Jito bundles are NOT rejected here — they follow the round-2 path.
-// Only mayhem agents and pool-size violations are hard rejections.
 export function qualityGate(token) {
   if (token.mayhemDetected)
     return fail(`mayhem agent detected`);
-
   if (token.vSol > MAX_POOL_SOL)
-    return fail(`pool too large: ${token.vSol.toFixed(1)} SOL (max ${MAX_POOL_SOL})`);
-
+    return fail(`pool too large: ${token.vSol.toFixed(1)} SOL`);
   if ((token.winCount || 0) >= 1)
-    return pass(`proven token (${token.winCount} wins) — quality already validated`);
+    return pass(`proven token`);
 
   if (token.category === 'new') {
     if (token.maxEarlyBuySol > QUALITY_MAX_BUY_SOL)
-      return fail(`whale buy: ${token.maxEarlyBuySol.toFixed(2)} SOL while MC <$${QUALITY_MC_THRESHOLD}`);
-
-    const buyerCount = Math.max(
-      token.uniqueBuyers?.size ?? 0,
-      token.resolvedBuyerCount ?? 0
-    );
+      return fail(`whale buy: ${token.maxEarlyBuySol.toFixed(2)} SOL`);
+    const buyerCount = Math.max(token.uniqueBuyers?.size ?? 0, token.resolvedBuyerCount ?? 0);
     if (buyerCount < QUALITY_MIN_BUYERS)
       return fail(`only ${buyerCount} unique buyers, need ${QUALITY_MIN_BUYERS}`);
-
-    const r2 = token.jitoBundle ? ' [jito-bundle, round-2]' : '';
+    const r2 = token.jitoBundle ? ' [round-2]' : '';
     return pass(`quality ok (${buyerCount} buyers)${r2}`);
   }
 
-  // Old/seeded tokens: 5+ floor touches proves trading activity even if buyers Set was lost
-  const buyerCount = Math.max(
-    token.uniqueBuyers?.size ?? 0,
-    token.resolvedBuyerCount ?? 0
-  );
+  const buyerCount = Math.max(token.uniqueBuyers?.size ?? 0, token.resolvedBuyerCount ?? 0);
   if (buyerCount < QUALITY_MIN_BUYERS_OLD && (token.floorTouches || 0) < 5)
-    return fail(`only ${buyerCount} unique buyers on old pair, need ${QUALITY_MIN_BUYERS_OLD}`);
-
-  const r2 = token.jitoBundle ? ' [jito-bundle, round-2]' : '';
-  return pass(`quality ok (${token.category} pair, ${buyerCount} buyers)${r2}`);
+    return fail(`only ${buyerCount} unique buyers on old pair`);
+  return pass(`quality ok (${token.category} pair)`);
 }
 
-// ── GATE 3: Floor Gate ───────────────────────────────────────────
 export function floorGate(token) {
   const floor = token.sessionLow;
   if (!floor || floor <= 0 || floor === Infinity)
     return fail(`no session low established yet`);
-
   const liveTouches = (token.mcHistory || []).filter(h =>
     h.mc <= floor * (1 + FLOOR_TOUCH_PCT) && h.mc >= floor * (1 - FLOOR_TOUCH_PCT)
   ).length;
-
   const histTouches = token.historyFloorTouches || 0;
   const confirmedTouches = token.confirmedFloorTouches || 0;
   const touches = Math.max(liveTouches, histTouches, confirmedTouches);
-
-  const isProven = (token.winCount || 0) >= 1;
-  const minTouches = isProven ? PROVEN_FLOOR_TOUCHES : FLOOR_MIN_TOUCHES;
-
-  if (touches < minTouches)
-    return fail(`floor at $${floor.toFixed(0)} only touched ${touches}x, need ${minTouches}${isProven ? ' [PROVEN]' : ''} (live:${liveTouches} hist:${histTouches})`);
-
-  return pass(`floor confirmed at $${floor.toFixed(0)} (${touches} touches — live:${liveTouches} hist:${histTouches})${isProven ? ' [PROVEN]' : ''}`);
+  if (touches < FLOOR_MIN_TOUCHES)
+    return fail(`floor $${floor.toFixed(0)} only ${touches}x, need ${FLOOR_MIN_TOUCHES}`);
+  return pass(`floor confirmed $${floor.toFixed(0)} (${touches} touches)`);
 }
 
-// ── GATE 4: Arm Zone Gate ────────────────────────────────────────
 export function armZoneGate(token) {
   const floor   = token.sessionLow;
   const current = token.currentMc;
-
   if (!floor || !current) return fail(`missing floor or current MC`);
-
   const aboveFloor = (current - floor) / floor;
-  const isProven = (token.winCount || 0) >= 1;
-  const maxAbove = isProven ? PROVEN_ARM_ZONE_PCT : FLOOR_ARM_ZONE_PCT;
-
-  if (aboveFloor > maxAbove)
-    return fail(`price $${current.toFixed(0)} is ${pct(current, floor)} above floor $${floor.toFixed(0)} — not in arm zone (max ${(maxAbove*100).toFixed(0)}%)${isProven ? ' [PROVEN]' : ''}`);
-
+  if (aboveFloor > FLOOR_ARM_ZONE_PCT)
+    return fail(`$${current.toFixed(0)} is ${pct(current, floor)} above floor $${floor.toFixed(0)} (max ${(FLOOR_ARM_ZONE_PCT*100).toFixed(0)}%)`);
   if (current < floor * 0.85)
-    return fail(`price $${current.toFixed(0)} is below floor — possible floor break`);
-
-  return pass(`price $${current.toFixed(0)} is within arm zone (${pct(current, floor)} above floor $${floor.toFixed(0)})${isProven ? ' [PROVEN]' : ''}`);
+    return fail(`$${current.toFixed(0)} below floor — break risk`);
+  return pass(`in arm zone (${pct(current, floor)} above floor $${floor.toFixed(0)})`);
 }
 
-// ── GATE 5: Entry MC Gate ────────────────────────────────────────
 export function entryMcGate(token) {
   const mc = token.currentMc;
-  if (!mc || mc < ENTRY_MC_MIN)
-    return fail(`MC $${mc?.toFixed(0)} below minimum $${ENTRY_MC_MIN}`);
-  if (mc > ENTRY_MC_MAX)
-    return fail(`MC $${mc?.toFixed(0)} above maximum $${ENTRY_MC_MAX}`);
-  return pass(`MC $${mc.toFixed(0)} in range $${ENTRY_MC_MIN}-$${ENTRY_MC_MAX}`);
+  if (!mc || mc < ENTRY_MC_MIN) return fail(`MC $${mc?.toFixed(0)} below $${ENTRY_MC_MIN}`);
+  if (mc > ENTRY_MC_MAX) return fail(`MC $${mc?.toFixed(0)} above $${ENTRY_MC_MAX}`);
+  return pass(`MC $${mc.toFixed(0)} in range`);
 }
 
-// ── GATE 6: Re-entry Gate ────────────────────────────────────────
 export function reentryGate(token) {
   const now = Date.now() / 1000;
-
   if (token.tradeCount >= MAX_TRADES_PER_TOKEN)
-    return fail(`trade cap hit (${token.tradeCount} trades on this token)`);
+    return fail(`trade cap hit (${token.tradeCount})`);
   if (token.blacklistedUntil && now < token.blacklistedUntil)
-    return fail(`blacklisted for ${(token.blacklistedUntil - now).toFixed(0)}s more`);
-
+    return fail(`blacklisted ${(token.blacklistedUntil - now).toFixed(0)}s`);
   if (token.cooldownUntil && now < token.cooldownUntil)
-    return fail(`cooldown: ${(token.cooldownUntil - now).toFixed(0)}s remaining`);
-
-  const isProven = (token.winCount || 0) >= 1;
-  const maxAboveExit = isProven ? PROVEN_REENTRY_ABOVE_EXIT : REENTRY_MAX_ABOVE_EXIT;
-  if (token.lastExitMc && token.currentMc > token.lastExitMc * (1 + maxAboveExit))
-    return fail(`price $${token.currentMc.toFixed(0)} is ${isProven ? '10' : '2'}%+ above last exit $${token.lastExitMc.toFixed(0)} — not chasing`);
-
+    return fail(`cooldown: ${(token.cooldownUntil - now).toFixed(0)}s`);
+  if (token.lastExitMc && token.currentMc > token.lastExitMc * (1 + REENTRY_MAX_ABOVE_EXIT))
+    return fail(`$${token.currentMc.toFixed(0)} above last exit $${token.lastExitMc.toFixed(0)}`);
   return pass(token.lastExitMc
-    ? `re-entry ok (current $${token.currentMc.toFixed(0)} ≤ last exit $${token.lastExitMc.toFixed(0)})${isProven ? ' [PROVEN]' : ''}`
-    : `first entry on this token`);
+    ? `re-entry ok ($${token.currentMc.toFixed(0)} ≤ $${token.lastExitMc.toFixed(0)})`
+    : `first entry`);
 }
 
-// ── GATE 7: Concurrency Gate ─────────────────────────────────────
 export function concurrencyGate(openCount) {
   if (openCount >= MAX_CONCURRENT)
-    return fail(`at max concurrent positions (${openCount}/${MAX_CONCURRENT})`);
-  return pass(`${openCount}/${MAX_CONCURRENT} positions open`);
+    return fail(`max positions (${openCount}/${MAX_CONCURRENT})`);
+  return pass(`${openCount}/${MAX_CONCURRENT} open`);
 }
 
-// ── GATE 8: Sell Pressure Gate ───────────────────────────────────
 export function sellPressureGate(token) {
   const hist = token.mcHistory || [];
   const recent = hist.length > 1 ? hist.slice(-13, -1) : [];
-  const isProven = (token.winCount || 0) >= 1;
-  const minTicks = isProven ? 2 : (token.category === 'old' || token.isSeeded) ? 2 : 4;
-  if (recent.length < minTicks) return fail(`low activity: only ${recent.length} pre-catalyst ticks (need ${minTicks})${isProven ? ' [PROVEN]' : ''}`);
+  const minTicks = (token.category === 'old' || token.isSeeded || (token.winCount || 0) >= 1) ? 2 : 4;
+  if (recent.length < minTicks) return fail(`only ${recent.length} ticks (need ${minTicks})`);
   let buySol = 0, sellSol = 0;
-  for (const h of recent) {
-    if (h.isBuy) buySol += (h.sol || 0);
-    else sellSol += (h.sol || 0);
-  }
+  for (const h of recent) { if (h.isBuy) buySol += (h.sol || 0); else sellSol += (h.sol || 0); }
   const recentBuys = recent.filter(h => h.isBuy).length;
-  if (recentBuys === 0)
-    return fail(`no pre-catalyst buying in last ${recent.length} ticks — isolated catalyst`);
+  if (recentBuys === 0) return fail(`no pre-catalyst buying`);
   if (sellSol > buySol * 2.5 && sellSol > 0.3)
-    return fail(`sell pressure: ${sellSol.toFixed(2)} SOL sold vs ${buySol.toFixed(2)} bought`);
-  return pass(`pre-entry flow ok: ${buySol.toFixed(2)} bought / ${sellSol.toFixed(2)} sold (${recentBuys} buys in ${recent.length} ticks)`);
+    return fail(`sell pressure: ${sellSol.toFixed(2)} vs ${buySol.toFixed(2)} bought`);
+  return pass(`flow ok: ${buySol.toFixed(2)}/${sellSol.toFixed(2)} (${recentBuys} buys)`);
 }
 
-// ── GATE 9: Catalyst Gate ────────────────────────────────────────
 export function catalystGate(token, isBuy, solAmount, currentMc) {
-  if (!isBuy)
-    return fail(`not a buy tick — catalyst must be a buy`);
-
-  if (solAmount < CATALYST_MIN_SOL)
-    return fail(`catalyst too small: ${solAmount.toFixed(3)} SOL < ${CATALYST_MIN_SOL} SOL`);
-
-  return pass(`catalyst: ${solAmount.toFixed(3)} SOL buy at $${currentMc.toFixed(0)}`);
+  if (!isBuy) return fail(`not a buy`);
+  if (solAmount < CATALYST_MIN_SOL) return fail(`${solAmount.toFixed(3)} SOL < ${CATALYST_MIN_SOL}`);
+  return pass(`catalyst: ${solAmount.toFixed(3)} SOL at $${currentMc.toFixed(0)}`);
 }
 
-// ── EXIT GATES ───────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// NEW EXIT SYSTEM — DCA + Floor Break
+// ═══════════════════════════════════════════════════════════════════
 
-export function stopLossGate(trade, currentMc) {
-  const pnlPct = (currentMc - trade.entryMc) / trade.entryMc * 100;
-  if (pnlPct <= -STOP_LOSS_PCT)
-    return { exit: true, reason: 'STOP_LOSS', pnlPct };
+/**
+ * Checks if a DCA tranche should be sold.
+ * Returns { sell: boolean, tranche: number, reason: string, pct: number }
+ */
+export function dcaExitGate(trade, currentMc) {
+  const mult = currentMc / trade.entryMc;
+  const soldTranches = trade.tranchesSold || 0;
+
+  if (soldTranches === 0 && mult >= DCA_TRANCHE_1_MULT)
+    return { sell: true, tranche: 1, pct: 0.33, reason: `DCA_T1`, detail: `${mult.toFixed(2)}x (≥${DCA_TRANCHE_1_MULT}x)` };
+  if (soldTranches === 1 && mult >= DCA_TRANCHE_2_MULT)
+    return { sell: true, tranche: 2, pct: 0.33, reason: `DCA_T2`, detail: `${mult.toFixed(2)}x (≥${DCA_TRANCHE_2_MULT}x)` };
+  if (soldTranches === 2 && mult >= DCA_TRANCHE_3_MULT)
+    return { sell: true, tranche: 3, pct: 0.34, reason: `DCA_T3`, detail: `${mult.toFixed(2)}x (≥${DCA_TRANCHE_3_MULT}x)` };
+
+  return { sell: false };
+}
+
+/**
+ * Floor break hard stop: if price drops 10% below the floor at time of entry.
+ * The floor = token.entryFloor (the sessionLow when we entered).
+ */
+export function floorBreakGate(trade, currentMc) {
+  const entryFloor = trade.entryFloor || trade.entryMc;
+  const breakLevel = entryFloor * (1 - FLOOR_BREAK_PCT);
+  if (currentMc <= breakLevel)
+    return { exit: true, reason: 'FLOOR_BREAK', detail: `$${currentMc.toFixed(0)} ≤ $${breakLevel.toFixed(0)} (floor $${entryFloor.toFixed(0)} -${(FLOOR_BREAK_PCT*100).toFixed(0)}%)` };
   return { exit: false };
 }
 
-export function sellerExitGate(trade, isBuy, solAmount, vSol) {
-  if (isBuy) return { exit: false };
-  const dynamicThreshold = Math.max(SELLER_EXIT_SOL, (vSol || 30) * 0.005);
-  if (solAmount >= dynamicThreshold)
-    return { exit: true, reason: 'SELLER_EXIT', detail: `${solAmount.toFixed(3)} SOL sell >= ${dynamicThreshold.toFixed(3)} threshold` };
+/**
+ * Bond cap: sell everything if MC approaches bonding curve
+ */
+export function bondCapGate(trade, currentMc) {
+  if (currentMc >= BOND_MC_SELL)
+    return { exit: true, reason: 'BOND_CAP', detail: `MC $${currentMc.toFixed(0)} ≥ $${BOND_MC_SELL}` };
   return { exit: false };
 }
 
-export function takeProfitGate(trade, currentMc) {
-  const pnlPct  = (currentMc - trade.entryMc) / trade.entryMc * 100;
-  const peakPnl = (trade.peakMc - trade.entryMc) / trade.entryMc * 100;
-
-  if (pnlPct >= TAKE_PROFIT_PCT)
-    return { exit: true, reason: 'TAKE_PROFIT', pnlPct };
-
-  if (peakPnl >= TRAIL_ACTIVATE_PCT) {
-    const trailFloor = peakPnl * TRAIL_KEEP_PCT;
-    if (pnlPct < trailFloor)
-      return { exit: true, reason: 'TRAIL_STOP', pnlPct, peakPnl };
-  }
-
-  return { exit: false };
-}
-
+/**
+ * Max hold hard cap (45 min)
+ */
 export function maxHoldGate(holdSec) {
   if (holdSec >= MAX_HOLD_SECS)
     return { exit: true, reason: 'MAX_HOLD' };
@@ -263,32 +223,38 @@ export function runEntryGates(token, isBuy, solAmount, currentMc, openCount, log
   return { pass: true, gate: 'ALL', reason: 'all 9 gates passed' };
 }
 
-// ── RUN ALL EXIT GATES IN ORDER ──────────────────────────────────
+// ── RUN DCA EXIT CHECK ───────────────────────────────────────────
 export function runExitGates(trade, token, isBuy, solAmount, holdSec, log) {
   const mc = token.currentMc;
 
-  const sl = stopLossGate(trade, mc);
-  if (sl.exit) {
-    log('EXIT_GATE', token.symbol, token.mint, { gate: 'STOP_LOSS', pnl: sl.pnlPct?.toFixed(1) });
-    return sl;
+  // 1. Floor break — hard stop, sell everything
+  const fb = floorBreakGate(trade, mc);
+  if (fb.exit) {
+    log('EXIT_GATE', token.symbol, token.mint, { gate: 'FLOOR_BREAK', detail: fb.detail });
+    return { exit: true, reason: fb.reason, sellAll: true };
   }
 
-  const se = sellerExitGate(trade, isBuy, solAmount, token.vSol);
-  if (se.exit) {
-    log('EXIT_GATE', token.symbol, token.mint, { gate: 'SELLER_EXIT', holdSec: holdSec.toFixed(1) });
-    return se;
+  // 2. Bond cap — sell everything near bonding curve
+  const bc = bondCapGate(trade, mc);
+  if (bc.exit) {
+    log('EXIT_GATE', token.symbol, token.mint, { gate: 'BOND_CAP', detail: bc.detail });
+    return { exit: true, reason: bc.reason, sellAll: true };
   }
 
-  const tp = takeProfitGate(trade, mc);
-  if (tp.exit) {
-    log('EXIT_GATE', token.symbol, token.mint, { gate: tp.reason, pnl: tp.pnlPct?.toFixed(1) });
-    return tp;
-  }
-
+  // 3. Max hold — sell everything
   const mh = maxHoldGate(holdSec);
   if (mh.exit) {
-    log('EXIT_GATE', token.symbol, token.mint, { gate: 'MAX_HOLD', holdSec: holdSec.toFixed(1) });
-    return mh;
+    log('EXIT_GATE', token.symbol, token.mint, { gate: 'MAX_HOLD', holdSec: holdSec.toFixed(0) });
+    return { exit: true, reason: mh.reason, sellAll: true };
+  }
+
+  // 4. DCA tranche — partial sell
+  const dca = dcaExitGate(trade, mc);
+  if (dca.sell) {
+    log('EXIT_GATE', token.symbol, token.mint, {
+      gate: dca.reason, tranche: dca.tranche, pct: dca.pct, detail: dca.detail,
+    });
+    return { exit: true, reason: dca.reason, sellAll: false, tranche: dca.tranche, pct: dca.pct };
   }
 
   return { exit: false };

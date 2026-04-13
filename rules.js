@@ -33,7 +33,7 @@ export const QUALITY_MC_THRESHOLD = 5_000;     // above this MC, large buys are 
 export const HISTORY_MIN_TRADES   = 10;       // minimum trades needed to establish floor
 
 // ── Floor detection ─────────────────────────────────────────────
-export const FLOOR_ARM_ZONE_PCT   = 0.20;     // arm when within 20% above session low
+export const FLOOR_ARM_ZONE_PCT   = 0.15;     // arm when within 15% above session low (tightened)
 export const FLOOR_MIN_TOUCHES    = 2;        // floor must have been tested 2+ times
 export const FLOOR_TOUCH_PCT      = 0.06;     // ±6% = "touching the same level"
 
@@ -45,30 +45,26 @@ export const ARM_TIMEOUT_SECS     = 300;      // disarm if no catalyst in 5 min
 export const POSITION_SOL         = Number(process.env.POSITION_SOL) || 0.2;
 export const MAX_CONCURRENT       = 5;
 
-// ── Hold ────────────────────────────────────────────────────────
-export const MIN_HOLD_SECS        = 0;        // no minimum hold — order flow decides
+// ── DCA Exit Strategy ───────────────────────────────────────────
+// Sell in 3 tranches as price rises. Hold for the move, not the scalp.
+export const DCA_TRANCHE_1_MULT   = 2.0;     // sell 33% at 2x entry
+export const DCA_TRANCHE_2_MULT   = 2.5;     // sell 33% at 2.5x entry
+export const DCA_TRANCHE_3_MULT   = 3.0;     // sell 34% at 3x entry
+export const DCA_TRANCHE_1_PCT    = 0.33;    // 33% of position
+export const DCA_TRANCHE_2_PCT    = 0.33;    // 33% of position
+export const DCA_TRANCHE_3_PCT    = 0.34;    // remaining 34%
 
-// ── Exit thresholds ─────────────────────────────────────────────
-export const SELLER_EXIT_SOL      = 0.15;     // sell ≥ 0.15 SOL on top = exit
-export const STOP_LOSS_PCT        = 4;        // hard stop -4%
-export const TAKE_PROFIT_PCT      = 20;       // flat TP fallback
-export const TRAIL_ACTIVATE_PCT   = 3;        // trail from +3% gain
-export const TRAIL_KEEP_PCT       = 0.60;     // keep 60% of peak gain
-export const MAX_HOLD_SECS        = 180;      // 3 min hard cap
+// ── Floor break stop ────────────────────────────────────────────
+export const FLOOR_BREAK_PCT      = 0.10;    // sell 100% if price drops 10% below entry floor
+export const MAX_HOLD_SECS        = 2700;    // 45 min hard cap (was 3 min)
+
+// ── Bond cap ────────────────────────────────────────────────────
+export const BOND_MC_SELL         = 55_000;   // sell remaining position approaching bonding curve
 
 // ── Re-entry rules ──────────────────────────────────────────────
-export const REENTRY_MAX_ABOVE_EXIT = 0.02;
-export const REENTRY_COOLDOWN_SECS  = 60;
-export const MAX_TRADES_PER_TOKEN   = 20;
-
-// ── Proven token fast-track ─────────────────────────────────────
-// Once a token has 1+ winning trades, loosen safety checks for rapid re-scalping.
-// Mirrors observed behavior of top wallets: 10-20 scalps on same coin, minimal gaps.
-export const PROVEN_FLOOR_TOUCHES     = 1;      // only need 1 bounce (vs 2 normally)
-export const PROVEN_COOLDOWN_SECS     = 5;      // re-arm in 5s after any exit (vs 60s)
-export const PROVEN_LOSS_COOLDOWN     = 180;    // 3min after 3+ loss streak (vs 300s)
-export const PROVEN_REENTRY_ABOVE_EXIT = 0.10;  // allow 10% above last exit (vs 2%)
-export const PROVEN_ARM_ZONE_PCT      = 0.30;   // wider arm zone 30% (vs 20%)
+export const REENTRY_MAX_ABOVE_EXIT = 0.05;
+export const REENTRY_COOLDOWN_SECS  = 120;
+export const MAX_TRADES_PER_TOKEN   = 5;      // reduced — we hold longer now
 
 // ── Mayhem blacklist ────────────────────────────────────────────
 export const MAYHEM_AGENT_WALLET  = "BwWK17cbHxwWBKZkUYvzxLcNQ1YVyaFezduWbtm2de6s";
@@ -83,7 +79,7 @@ export const RESUB_BATCH_SIZE     = 50;       // re-subscribe in batches on rest
 export const RESUB_BATCH_DELAY_MS = 500;      // delay between batches
 
 // ── Fees ────────────────────────────────────────────────────────
-export const TRADE_FEE_PCT        = 0.02;     // ~2% round trip (1% per side on pump.fun)
+export const TRADE_FEE_PCT        = 0.01;     // ~1% per side on pump.fun
 
 // ── Data bounds ─────────────────────────────────────────────────
 export const MAX_SOL_PER_TICK     = 50;       // reject PP ticks with solAmount > 50 SOL
