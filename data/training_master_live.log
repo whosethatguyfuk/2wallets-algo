@@ -846,3 +846,57 @@
   !! GATE VIOLATION: pumpcar - RE_ENTRY
   !! GATE VIOLATION: TREES - SELL_PRESSURE
   FLOORED & READY: Dog MC=$71696 floor=$71169 aboveFloor=0.7%
+[2026-04-13 16:37:54] Session 4 | Check #8 | 24min remaining
+[2026-04-13 16:37:54] [S4-CHECK8] Taking state snapshot...
+  Version: 2.7.0
+  Registry: ? | Nursery: 39 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 12 | WR: 16.7%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 4 armed
+  !! GATE VIOLATION: pumphouse - HISTORY
+  !! GATE VIOLATION: pumpcar - RE_ENTRY
+  FLOORED & READY: Dog MC=$71246 floor=$71169 aboveFloor=0.1%
+  FLOORED & READY: Bullcoin MC=$18002 floor=$13771 aboveFloor=30.7%
+  FLOORED & READY: TREES MC=$4006 floor=$4006 aboveFloor=0%
+[2026-04-13 16:42:55] Session 4 | Check #9 | 19min remaining
+[2026-04-13 16:42:55] [S4-CHECK9] Taking state snapshot...
+  Version: 2.8.0
+  Registry: ? | Nursery: 54 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 4 | WR: 0%
+  States: {}
+  Blocked→Armed pipeline: 2 tokens blocked | 5 armed
+  !! GATE VIOLATION: BBull - SELL_PRESSURE
+  !! GATE VIOLATION: Cerberus - SELL_PRESSURE
+  !! GATE VIOLATION: NEIL - RE_ENTRY
+  !! GATE VIOLATION: pumpcar - SELL_PRESSURE
+  !! GATE VIOLATION: NLFET - SELL_PRESSURE
+  FLOORED & READY: GR MC=$7768 floor=$7499 aboveFloor=3.6%
+[2026-04-13 16:47:56] Session 4 | Check #10 | 14min remaining
+[2026-04-13 16:47:56] [S4-CHECK10] Taking state snapshot...
+  Version: 2.8.0
+  Registry: ? | Nursery: 39 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 11 | WR: 9.1%
+  States: {}
+  Blocked→Armed pipeline: 39 tokens blocked | 2 armed
+  !! GATE VIOLATION: GR - HISTORY
+  !! GATE VIOLATION: pumphouse - SELL_PRESSURE
+  FLOORED & READY: NEIL MC=$7022 floor=$4891 aboveFloor=43.6%
+  FLOORED & READY: pumpcar MC=$6271 floor=$4747 aboveFloor=32.1%
+  FLOORED & READY: PBULL MC=$9950 floor=$9910 aboveFloor=0.4%
+[2026-04-13 16:52:57] Session 4 | Check #11 | 9min remaining
+[2026-04-13 16:52:57] [S4-CHECK11] Taking state snapshot...
+  Version: 2.8.0
+  Registry: ? | Nursery: 62 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 17 | WR: 11.8%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 3 armed
+  !! GATE VIOLATION: PBULL - HISTORY
+  !! GATE VIOLATION: 💋 - SELL_PRESSURE
+  FLOORED & READY: NEIL MC=$15623 floor=$4891 aboveFloor=219.4%
+  FLOORED & READY: pumpcar MC=$8270 floor=$4747 aboveFloor=74.2%
+  FLOORED & READY: GR MC=$7431 floor=$6803 aboveFloor=9.2%
+  FLOORED & READY: 𝕏CHAT MC=$11329 floor=$11329 aboveFloor=0%

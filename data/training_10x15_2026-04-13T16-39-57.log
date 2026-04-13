@@ -1,0 +1,191 @@
+[2026-04-13 16:39:57] ╔══════════════════════════════════════════════════════════════╗
+[2026-04-13 16:39:57] ║  10-SESSION TRAINING LOOP — 150 MIN TOTAL                  ║
+[2026-04-13 16:39:57] ║  Bot: https://2wallets-algo-production.up.railway.app                                            ║
+[2026-04-13 16:39:57] ╚══════════════════════════════════════════════════════════════╝
+[2026-04-13 16:39:57] [INIT] Snapshot:
+  Version: 2.8.0
+  Registry: 6 | Nursery: 12 | ColdWatch: 0
+  Armed: 2 | Open: 0 | Trades: 1
+  Wins: 0 | Losses: 1 | WR: 0%
+  PnL: -0.0068 SOL
+  Proven: 0 | MaxConcurrent: 5
+  States: {'INDEXED': 1, 'WATCHING': 1, 'FLOORED': 2, 'ARMED': 2}
+  PP: True
+[2026-04-13 16:39:58] 
+[2026-04-13 16:39:58] ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+[2026-04-13 16:39:58]   SESSION 1 / 10 — STARTING (Mon Apr 13 16:39:58 +07 2026)
+[2026-04-13 16:39:58] ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+[2026-04-13 16:39:58]   [S1] Check #1 — 15min left
+[2026-04-13 16:39:58] [S1-C1] Snapshot:
+  Version: 2.8.0
+  Registry: 6 | Nursery: 12 | ColdWatch: 0
+  Armed: 2 | Open: 0 | Trades: 1
+  Wins: 0 | Losses: 1 | WR: 0%
+  PnL: -0.0068 SOL
+  Proven: 0 | MaxConcurrent: 5
+  States: {'INDEXED': 1, 'WATCHING': 1, 'FLOORED': 2, 'ARMED': 2}
+  PP: True
+[2026-04-13 16:39:58] Wallet comparison:
+  pumpcar (7Sy1tWDD): Wallets 1B/1S | Us 0B/0S | MC $7247 | ATH $12986 | State: ARMED
+    Wallet-B BUY 0.395 SOL @ $7564 (our state: ARMED, our floor: $7132)
+    Wallet-B SELL 0.384 SOL @ $7247 (our state: ARMED, our floor: $7132)
+  NEIL (35rMEcJZ): Wallets 0B/0S | Us 1B/1S | MC $6416 | ATH $8997 | State: ARMED
+[2026-04-13 16:42:58]   [S1] Check #2 — 12min left
+[2026-04-13 16:42:58] [S1-C2] Snapshot:
+  Version: 2.8.0
+  Registry: 9 | Nursery: 54 | ColdWatch: 0
+  Armed: 5 | Open: 0 | Trades: 4
+  Wins: 0 | Losses: 4 | WR: 0%
+  PnL: -0.0448 SOL
+  Proven: 0 | MaxConcurrent: 5
+  States: {'INDEXED': 1, 'WATCHING': 2, 'ARMED': 5, 'FLOORED': 1}
+  PP: True
+[2026-04-13 16:42:59] Wallet comparison:
+  pumpcar (7Sy1tWDD): Wallets 2B/1S | Us 0B/0S | MC $6008 | ATH $12986 | State: ARMED
+    Wallet-B BUY 0.395 SOL @ $7564 (our state: ARMED, our floor: $7132)
+    Wallet-B SELL 0.384 SOL @ $7247 (our state: ARMED, our floor: $7132)
+    Wallet-A BUY 0.251 SOL @ $6877 (our state: ARMED, our floor: $6487)
+  NLFET (Aug7te5e): Wallets 1B/1S | Us 0B/0S | MC $9963 | ATH $13677 | State: ARMED
+    Wallet-B SELL 0.359 SOL @ $9623 (our state: INDEXED, our floor: $9736)
+    Wallet-B BUY 0.395 SOL @ $9900 (our state: FLOORED, our floor: $9623)
+  GR (DRR9TK8f): Wallets 0B/1S | Us 0B/0S | MC $7768 | ATH $16888 | State: FLOORED
+    Wallet-B SELL 0.453 SOL @ $7499 (our state: WATCHING, our floor: $0)
+  NEIL (35rMEcJZ): Wallets 0B/0S | Us 2B/2S | MC $5590 | ATH $8997 | State: ARMED
+  Cerberus (4ebVfSVv): Wallets 0B/0S | Us 2B/2S | MC $8798 | ATH $13817 | State: ARMED
+[2026-04-13 16:45:59]   [S1] Check #3 — 8min left
+[2026-04-13 16:45:59] [S1-C3] Snapshot:
+  Version: 2.8.0
+  Registry: 27 | Nursery: 58 | ColdWatch: 17
+  Armed: 2 | Open: 2 | Trades: 8
+  Wins: 0 | Losses: 8 | WR: 0%
+  PnL: -0.0659 SOL
+  Proven: 1 | MaxConcurrent: 5
+  States: {'INDEXED': 10, 'BUYING': 1, 'FLOORED': 6, 'ARMED': 2, 'WATCHING': 6, 'EXIT_UNLOCKED': 1, 'BLACKLISTED': 1}
+  PP: True
+[2026-04-13 16:46:00] Wallet comparison:
+  pumpcar (7Sy1tWDD): Wallets 4B/3S | Us 1B/1S | MC $5747 | ATH $12986 | State: ARMED
+    Wallet-B BUY 0.395 SOL @ $7564 (our state: ARMED, our floor: $7132)
+    Wallet-B SELL 0.384 SOL @ $7247 (our state: ARMED, our floor: $7132)
+    Wallet-A BUY 0.251 SOL @ $6877 (our state: ARMED, our floor: $6487)
+    Wallet-A SELL 0.204 SOL @ $5543 (our state: ARMED, our floor: $5591)
+    Wallet-B BUY 0.395 SOL @ $5529 (our state: ARMED, our floor: $5385)
+  NLFET (Aug7te5e): Wallets 3B/3S | Us 3B/2S | MC $5154 | ATH $13677 | State: EXIT_UNLOCKED
+    Wallet-B SELL 0.359 SOL @ $9623 (our state: INDEXED, our floor: $9736)
+    Wallet-B BUY 0.395 SOL @ $9900 (our state: FLOORED, our floor: $9623)
+    Wallet-B SELL 0.397 SOL @ $9809 (our state: BUYING, our floor: $9623)
+    Wallet-B BUY 0.395 SOL @ $9173 (our state: ARMED, our floor: $8904)
+    Wallet-B SELL 0.393 SOL @ $8999 (our state: ARMED, our floor: $8904)
+  NEIL (35rMEcJZ): Wallets 1B/0S | Us 2B/2S | MC $6045 | ATH $8997 | State: FLOORED
+    Wallet-A BUY 0.251 SOL @ $6629 (our state: FLOORED, our floor: $4891)
+  GR (DRR9TK8f): Wallets 0B/1S | Us 0B/0S | MC $7760 | ATH $16888 | State: ARMED
+    Wallet-B SELL 0.453 SOL @ $7499 (our state: WATCHING, our floor: $0)
+  pumphouse (EPhaJqNb): Wallets 1B/0S | Us 1B/1S | MC $7477 | ATH $10116 | State: FLOORED
+    Wallet-A BUY 0.251 SOL @ $6964 (our state: CLOSED, our floor: $5993)
+  Cerberus (4ebVfSVv): Wallets 0B/0S | Us 2B/2S | MC $2467 | ATH $13817 | State: FLOORED
+[2026-04-13 16:49:00]   [S1] Check #4 — 5min left
+[2026-04-13 16:49:00] [S1-C4] Snapshot:
+  Version: 2.8.0
+  Registry: 50 | Nursery: 48 | ColdWatch: 38
+  Armed: 3 | Open: 2 | Trades: 12
+  Wins: 1 | Losses: 11 | WR: 8.3%
+  PnL: -0.0548 SOL
+  Proven: 1 | MaxConcurrent: 5
+  States: {'INDEXED': 18, 'FLOORED': 22, 'BUYING': 1, 'ARMED': 3, 'CLOSED': 1, 'BLACKLISTED': 1, 'EXIT_UNLOCKED': 1, 'WATCHING': 3}
+  PP: True
+[2026-04-13 16:49:01] Wallet comparison:
+  NLFET (Aug7te5e): Wallets 4B/5S | Us 6B/6S | MC $4313 | ATH $13677 | State: CLOSED
+    Wallet-B SELL 0.359 SOL @ $9623 (our state: INDEXED, our floor: $9736)
+    Wallet-B BUY 0.395 SOL @ $9900 (our state: FLOORED, our floor: $9623)
+    Wallet-B SELL 0.397 SOL @ $9809 (our state: BUYING, our floor: $9623)
+    Wallet-B BUY 0.395 SOL @ $9173 (our state: ARMED, our floor: $8904)
+    Wallet-B SELL 0.393 SOL @ $8999 (our state: ARMED, our floor: $8904)
+  pumpcar (7Sy1tWDD): Wallets 4B/4S | Us 1B/1S | MC $6779 | ATH $12986 | State: FLOORED
+    Wallet-B BUY 0.395 SOL @ $7564 (our state: ARMED, our floor: $7132)
+    Wallet-B SELL 0.384 SOL @ $7247 (our state: ARMED, our floor: $7132)
+    Wallet-A BUY 0.251 SOL @ $6877 (our state: ARMED, our floor: $6487)
+    Wallet-A SELL 0.204 SOL @ $5543 (our state: ARMED, our floor: $5591)
+    Wallet-B BUY 0.395 SOL @ $5529 (our state: ARMED, our floor: $5385)
+  NEIL (35rMEcJZ): Wallets 3B/2S | Us 2B/2S | MC $10242 | ATH $17732 | State: FLOORED
+    Wallet-A BUY 0.251 SOL @ $6629 (our state: FLOORED, our floor: $4891)
+    Wallet-B BUY 0.427 SOL @ $6267 (our state: ARMED, our floor: $4891)
+    Wallet-B SELL 0.462 SOL @ $6648 (our state: FLOORED, our floor: $4891)
+    Wallet-A SELL 0.373 SOL @ $9739 (our state: FLOORED, our floor: $4891)
+    Wallet-A BUY 0.251 SOL @ $9858 (our state: FLOORED, our floor: $4891)
+  pumphouse (EPhaJqNb): Wallets 2B/1S | Us 2B/1S | MC $7622 | ATH $10116 | State: CLOSED
+    Wallet-A BUY 0.251 SOL @ $6964 (our state: CLOSED, our floor: $5993)
+    Wallet-B BUY 0.395 SOL @ $6745 (our state: ARMED, our floor: $5993)
+    Wallet-B SELL 0.454 SOL @ $7622 (our state: CLOSED, our floor: $5993)
+  Bullcoin (596qMCEB): Wallets 1B/1S | Us 0B/0S | MC $13797 | ATH $33617 | State: ARMED
+    Wallet-B BUY 0.390 SOL @ $14240 (our state: WATCHING, our floor: $13701)
+    Wallet-B SELL 0.383 SOL @ $13821 (our state: FLOORED, our floor: $13701)
+  GR (DRR9TK8f): Wallets 0B/1S | Us 0B/0S | MC $7665 | ATH $16888 | State: ARMED
+    Wallet-B SELL 0.453 SOL @ $7499 (our state: WATCHING, our floor: $0)
+  BBull (8TBzjZWr): Wallets 1B/0S | Us 0B/0S | MC $6663 | ATH $8951 | State: BUYING
+    Wallet-A BUY 0.251 SOL @ $6695 (our state: BUYING, our floor: $5999)
+  HENRY (GcGcqBJW): Wallets 0B/1S | Us 0B/0S | MC $14573 | ATH $20762 | State: ARMED
+    Wallet-A SELL 0.776 SOL @ $14739 (our state: INDEXED, our floor: $15041)
+  Cerberus (4ebVfSVv): Wallets 0B/0S | Us 2B/2S | MC $2445 | ATH $13817 | State: FLOORED
+[2026-04-13 16:52:01]   [S1] Check #5 — 2min left
+[2026-04-13 16:52:01] [S1-C5] Snapshot:
+  Version: 2.8.0
+  Registry: 77 | Nursery: 49 | ColdWatch: 49
+  Armed: 1 | Open: 4 | Trades: 16
+  Wins: 1 | Losses: 15 | WR: 6.3%
+  PnL: -0.1224 SOL
+  Proven: 1 | MaxConcurrent: 5
+  States: {'INDEXED': 22, 'FLOORED': 41, 'BUYING': 2, 'CLOSED': 2, 'BLACKLISTED': 3, 'EXIT_UNLOCKED': 2, 'WATCHING': 4, 'ARMED': 1}
+  PP: True
+[2026-04-13 16:52:02] Wallet comparison:
+  pumpcar (7Sy1tWDD): Wallets 5B/4S | Us 1B/1S | MC $8392 | ATH $12986 | State: FLOORED
+    Wallet-B BUY 0.395 SOL @ $7564 (our state: ARMED, our floor: $7132)
+    Wallet-B SELL 0.384 SOL @ $7247 (our state: ARMED, our floor: $7132)
+    Wallet-A BUY 0.251 SOL @ $6877 (our state: ARMED, our floor: $6487)
+    Wallet-A SELL 0.204 SOL @ $5543 (our state: ARMED, our floor: $5591)
+    Wallet-B BUY 0.395 SOL @ $5529 (our state: ARMED, our floor: $5385)
+  NLFET (Aug7te5e): Wallets 4B/5S | Us 8B/8S | MC $4071 | ATH $13677 | State: CLOSED
+    Wallet-B SELL 0.359 SOL @ $9623 (our state: INDEXED, our floor: $9736)
+    Wallet-B BUY 0.395 SOL @ $9900 (our state: FLOORED, our floor: $9623)
+    Wallet-B SELL 0.397 SOL @ $9809 (our state: BUYING, our floor: $9623)
+    Wallet-B BUY 0.395 SOL @ $9173 (our state: ARMED, our floor: $8904)
+    Wallet-B SELL 0.393 SOL @ $8999 (our state: ARMED, our floor: $8904)
+  NEIL (35rMEcJZ): Wallets 3B/3S | Us 2B/2S | MC $16070 | ATH $17732 | State: FLOORED
+    Wallet-A BUY 0.251 SOL @ $6629 (our state: FLOORED, our floor: $4891)
+    Wallet-B BUY 0.427 SOL @ $6267 (our state: ARMED, our floor: $4891)
+    Wallet-B SELL 0.462 SOL @ $6648 (our state: FLOORED, our floor: $4891)
+    Wallet-A SELL 0.373 SOL @ $9739 (our state: FLOORED, our floor: $4891)
+    Wallet-A BUY 0.251 SOL @ $9858 (our state: FLOORED, our floor: $4891)
+  Bullcoin (596qMCEB): Wallets 3B/2S | Us 1B/0S | MC $13058 | ATH $33617 | State: EXIT_UNLOCKED
+    Wallet-B BUY 0.390 SOL @ $14240 (our state: WATCHING, our floor: $13701)
+    Wallet-B SELL 0.383 SOL @ $13821 (our state: FLOORED, our floor: $13701)
+    Wallet-B BUY 0.395 SOL @ $12858 (our state: ARMED, our floor: $12227)
+    Wallet-B SELL 0.390 SOL @ $12559 (our state: ARMED, our floor: $12227)
+    Wallet-A BUY 0.707 SOL @ $12907 (our state: BUYING, our floor: $12126)
+  pumphouse (EPhaJqNb): Wallets 3B/1S | Us 2B/2S | MC $6708 | ATH $10116 | State: BUYING
+    Wallet-A BUY 0.251 SOL @ $6964 (our state: CLOSED, our floor: $5993)
+    Wallet-B BUY 0.395 SOL @ $6745 (our state: ARMED, our floor: $5993)
+    Wallet-B SELL 0.454 SOL @ $7622 (our state: CLOSED, our floor: $5993)
+    Wallet-B BUY 0.395 SOL @ $6367 (our state: ARMED, our floor: $5993)
+  BBull (8TBzjZWr): Wallets 1B/1S | Us 0B/0S | MC $6419 | ATH $8951 | State: BUYING
+    Wallet-A BUY 0.251 SOL @ $6695 (our state: BUYING, our floor: $5999)
+    Wallet-A SELL 0.261 SOL @ $6877 (our state: BUYING, our floor: $5999)
+  HANGHANG (ERWNMqSJ): Wallets 1B/1S | Us 1B/0S | MC $12320 | ATH $32060 | State: CLOSED
+    Wallet-A BUY 0.707 SOL @ $12387 (our state: BUYING, our floor: $11516)
+    Wallet-B SELL 0.437 SOL @ $12320 (our state: EXIT_UNLOCKED, our floor: $11516)
+  GR (DRR9TK8f): Wallets 0B/1S | Us 0B/0S | MC $7293 | ATH $16888 | State: FLOORED
+    Wallet-B SELL 0.453 SOL @ $7499 (our state: WATCHING, our floor: $0)
+  HENRY (GcGcqBJW): Wallets 0B/1S | Us 2B/1S | MC $18664 | ATH $20762 | State: EXIT_UNLOCKED
+    Wallet-A SELL 0.776 SOL @ $14739 (our state: INDEXED, our floor: $15041)
+  YANNICK (5Hx5y6UY): Wallets 0B/1S | Us 0B/0S | MC $12586 | ATH $13869 | State: FLOORED
+    Wallet-A SELL 0.379 SOL @ $12923 (our state: FLOORED, our floor: $12954)
+[2026-04-13 16:55:02] 
+[2026-04-13 16:55:02] ════════════ SESSION 1 REVIEW ════════════
+[2026-04-13 16:55:02] [S1-END] Snapshot:
+  Version: 2.8.0
+  Registry: 96 | Nursery: 57 | ColdWatch: 61
+  Armed: 1 | Open: 4 | Trades: 18
+  Wins: 2 | Losses: 16 | WR: 11.1%
+  PnL: -0.1359 SOL
+  Proven: 3 | MaxConcurrent: 5
+  States: {'INDEXED': 19, 'FLOORED': 67, 'BUYING': 3, 'BLACKLISTED': 3, 'EXIT_UNLOCKED': 1, 'CLOSED': 1, 'ARMED': 1, 'WATCHING': 1}
+  PP: True
+[2026-04-13 16:55:03] Trade review:
