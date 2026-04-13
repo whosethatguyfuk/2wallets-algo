@@ -104,7 +104,17 @@ export function updatePrice(token, mc, ts, isBuy, sol) {
   token.currentMc  = mc;
   token.lastTickTs = ts;
   if (mc > token.sessionHigh) token.sessionHigh = mc;
-  if (mc < token.sessionLow && mc > 0) token.sessionLow = mc;
+
+  // Rolling 5-min floor: sessionLow = minimum of the recent buffer.
+  // Old dips naturally age out, so the floor rises with the market.
+  // With <5 ticks, use traditional all-time-low behavior for stability.
+  if (token.mcHistory.length >= 5) {
+    let bufMin = Infinity;
+    for (const h of token.mcHistory) { if (h.mc < bufMin) bufMin = h.mc; }
+    token.sessionLow = bufMin;
+  } else if (mc < token.sessionLow && mc > 0) {
+    token.sessionLow = mc;
+  }
 
   if (token.sessionLow < Infinity) {
     token.floorTouches = token.mcHistory.filter(h =>
@@ -135,25 +145,6 @@ export function applyJitoBundleReset(token, log) {
 // ── Main tick function ────────────────────────────────────────────
 export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
   updatePrice(token, mc, ts, isBuy, sol);
-
-  // Rolling floor: if ALL recent ticks are >40% above sessionLow,
-  // the old floor is stale — the market has shifted upward.
-  // Reset floor to recent minimum so we can arm at current support.
-  const hist = token.mcHistory;
-  if (hist.length >= 20 && hist.length % 10 === 0 &&
-      token.sessionLow > 0 && token.sessionLow < Infinity) {
-    const recentMin = Math.min(...hist.map(h => h.mc));
-    if (recentMin > token.sessionLow * 1.40 && recentMin >= ENTRY_MC_MIN) {
-      const oldFloor = token.sessionLow;
-      token.sessionLow = recentMin;
-      token.floorTouches = 0;
-      log('FLOOR_DRIFT', token.symbol, token.mint, {
-        oldFloor: Math.round(oldFloor),
-        newFloor: Math.round(recentMin),
-        pctShift: +(((recentMin - oldFloor) / oldFloor) * 100).toFixed(1),
-      });
-    }
-  }
 
   const now = Date.now();
   const nowSec = now / 1000;

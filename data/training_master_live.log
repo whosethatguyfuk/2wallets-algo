@@ -900,3 +900,140 @@
   FLOORED & READY: pumpcar MC=$8270 floor=$4747 aboveFloor=74.2%
   FLOORED & READY: GR MC=$7431 floor=$6803 aboveFloor=9.2%
   FLOORED & READY: 𝕏CHAT MC=$11329 floor=$11329 aboveFloor=0%
+[2026-04-13 16:57:59] Session 4 | Check #12 | 4min remaining
+[2026-04-13 16:57:59] [S4-CHECK12] Taking state snapshot...
+  Version: 2.8.0
+  Registry: ? | Nursery: 68 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 24 | WR: 20.8%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 4 armed
+  !! GATE VIOLATION: HENRY - SELL_PRESSURE
+  !! GATE VIOLATION: Bullcoin - SELL_PRESSURE
+  FLOORED & READY: NEIL MC=$12290 floor=$4891 aboveFloor=151.3%
+  FLOORED & READY: pumpcar MC=$9578 floor=$4747 aboveFloor=101.8%
+  FLOORED & READY: GR MC=$7501 floor=$6803 aboveFloor=10.3%
+  FLOORED & READY: nees MC=$4508 floor=$3618 aboveFloor=24.6%
+  FLOORED & READY: 𝕏CHAT MC=$11346 floor=$11329 aboveFloor=0.2%
+  FLOORED & READY: Dug MC=$4670 floor=$3600 aboveFloor=29.7%
+[2026-04-13 17:03:00] 
+[2026-04-13 17:03:00] Session 4 COMPLETE — Running comprehensive review...
+
+================================================================================
+  SESSION 4 HOURLY REVIEW — 2026-04-13T10:03:00.538854+00:00
+  Log: /Users/kashanrana/Downloads/Printar/2wallets/./data/session_4_2026-04-13T17-03.jsonl
+================================================================================
+
+  [1] SCANNING PUMP.FUN FOR BONDED / HIGH-PERFORMING COINS...
+    Found 141 total coins | 78 bonded | 8 significant (ATH>$15K)
+
+  [2] CROSS-REFERENCING WITH OUR REGISTRY...
+    Caught: 1 | Missed: 7 | Missed bonded: 4
+
+  [3] TRADE ANALYSIS...
+
+  [4] GATE COMPLIANCE...
+
+  [5] ERROR ACCOUNTING (our errors + data provider errors)...
+
+  [6] ASSEMBLING REPORT...
+
+================================================================================
+  SESSION 4 REPORT
+================================================================================
+
+  BOT STATUS
+    Version: 2.9.0 | Registry: 7 | Nursery: 53 | Born total: 53
+    PnL: -0.011148 SOL | Trades: 4 | WR: 25%
+    States: {'EXIT_UNLOCKED': 1, 'ARMED': 1, 'FLOORED': 4, 'WATCHING': 1}
+
+  TRADE ANALYSIS (4 trades)
+    NEIL         entry=$ 13017 exit=$ 13017 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT]
+    NEIL         entry=$ 13337 exit=$ 13154 PnL=-3.4% hold=24s reason=SELLER_EXIT [clean]
+    NEIL         entry=$ 12226 exit=$ 13603 PnL=+9.3% hold=31s reason=SELLER_EXIT [clean]
+    NEIL         entry=$ 12716 exit=$ 12291 PnL=-5.3% hold=11s reason=EMERGENCY_STOP [BIG_LOSS_-5.3% | EXITED_EARLY_ATH_WAS_$18562]
+
+  MARKET COVERAGE
+    Significant coins (ATH>$15K): 8
+    Bonded coins: 78
+    WE CAUGHT: 1 | WE MISSED: 7 | Coverage: 12.5%
+
+    -- CAUGHT (top 10) --
+    YANNICK      ATH=$  15,570 MC=$  13,930 state=FLOORED traded=False
+
+    -- MISSED (top 15) --
+    mindbath     ATH=$75,151,021 MC=$1,177,930 bonded=True WHY: BONDED_DURING_SESSION, NEVER_DISCOVERED
+    LIB          ATH=$ 817,096 MC=$ 507,242 bonded=True WHY: CREATED_124min_AGO (before our session), NEVER_DISCOVERED
+    pumphouse    ATH=$ 272,382 MC=$ 228,367 bonded=True WHY: CREATED_126min_AGO (before our session), NEVER_DISCOVERED
+    JesusTremp   ATH=$ 182,847 MC=$ 150,528 bonded=True WHY: BONDED_DURING_SESSION, NEVER_DISCOVERED
+    COPPERINU    ATH=$  34,002 MC=$  10,505 bonded=False WHY: IN_NURSERY_NOT_PROMOTED
+    CHICKEN      ATH=$  30,819 MC=$  24,136 bonded=False WHY: NEVER_DISCOVERED
+    GOUT         ATH=$  25,932 MC=$  18,140 bonded=False WHY: IN_NURSERY_NOT_PROMOTED
+
+  GATE COMPLIANCE
+    Violations: 1 | Stuck WATCHING: 0 | Stale: 1
+    !! pumphouse armed but SELL_PRESSURE fails: sell pressure: 1.04 SOL sold vs 0.08 bought
+
+  ERROR ACCOUNTING
+    Spot-checked: 7 tokens
+    Data errors found: 0
+    No data integrity issues found in spot checks
+
+  POSSIBLE ERROR SOURCES (to account for in analysis)
+    - PumpPortal: can misclassify buy/sell, report stale solAmount, silently drop subscriptions
+    - Our bot: MC direction override can flip sells to buys for catalyst, floor detection on thin data
+    - Pump.fun API: phantom MC (real_sol=0 but high MC), stale ATH, delayed migration status
+
+  RECOMMENDATIONS FOR NEXT SESSION
+    1. DISCOVERY_TOO_NARROW: We're missing more runners than we catch. Consider lowering nursery promotion thresholds or seeding more aggressively.
+    2. GATE_VIOLATIONS: 1 tokens armed with failing gates. Fix the state machine before next session.
+    3. MISSED_BONDED: JesusTremp bonded during session (ATH $182,847) but we didn't catch it. Root cause: ['BONDED_DURING_SESSION', 'NEVER_DISCOVERED']
+
+  Log saved to: /Users/kashanrana/Downloads/Printar/2wallets/./data/session_4_2026-04-13T17-03.jsonl
+================================================================================
+
+[2026-04-13 17:03:12] Session 4 review done.
+[2026-04-13 17:03:12] 
+[2026-04-13 17:03:12] 
+[2026-04-13 17:03:12] ################################################################
+[2026-04-13 17:03:12]   SESSION 5 / 6 — STARTING
+[2026-04-13 17:03:12] ################################################################
+[2026-04-13 17:03:12] Session 5 | Check #1 | 60min remaining
+[2026-04-13 17:03:12] [S5-CHECK1] Taking state snapshot...
+  Version: 2.9.0
+  Registry: ? | Nursery: 62 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 4 | WR: 25%
+  States: {}
+  Blocked→Armed pipeline: 4 tokens blocked | 1 armed
+  !! GATE VIOLATION: pumphouse - SELL_PRESSURE
+  FLOORED & READY: BATTLE MC=$19112 floor=$15336 aboveFloor=24.6%
+  FLOORED & READY: Bullcoin MC=$9937 floor=$8062 aboveFloor=23.3%
+  FLOORED & READY: pumpcar MC=$8369 floor=$8175 aboveFloor=2.4%
+  FLOORED & READY: YANNICK MC=$13889 floor=$13889 aboveFloor=0%
+[2026-04-13 17:08:13] Session 5 | Check #2 | 54min remaining
+[2026-04-13 17:08:13] [S5-CHECK2] Taking state snapshot...
+  Version: 2.9.0
+  Registry: ? | Nursery: 50 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 27 | WR: 33.3%
+  States: {}
+  Blocked→Armed pipeline: 43 tokens blocked | 3 armed
+  !! GATE VIOLATION: NEIL - RE_ENTRY
+  !! GATE VIOLATION: pumphouse - HISTORY
+  FLOORED & READY: YANNICK MC=$15975 floor=$12502 aboveFloor=27.8%
+  FLOORED & READY: GOUT MC=$30119 floor=$17239 aboveFloor=74.7%
+  FLOORED & READY: ADDICT MC=$7977 floor=$7751 aboveFloor=2.9%
+[2026-04-13 17:13:15] Session 5 | Check #3 | 49min remaining
+[2026-04-13 17:13:15] [S5-CHECK3] Taking state snapshot...
+  Version: 2.9.0
+  Registry: ? | Nursery: 76 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 39 | WR: 33.3%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 6 armed
+  !! GATE VIOLATION: pumpcar - HISTORY
+  FLOORED & READY: YANNICK MC=$16042 floor=$12502 aboveFloor=28.3%
+  FLOORED & READY: GoutGout MC=$19832 floor=$11457 aboveFloor=73.1%
+  FLOORED & READY: 5B2F MC=$4768 floor=$4765 aboveFloor=0.1%
+  FLOORED & READY: ADDICT MC=$9491 floor=$7751 aboveFloor=22.4%
