@@ -1113,7 +1113,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '2.10.0',
+    version:    '2.10.1',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,
@@ -1430,7 +1430,9 @@ function runWatchdog() {
     if (now - pb.queuedAt > PENDING_TIMEOUT_MS) {
       pendingBuys.delete(mint);
       openCount = Math.max(0, openCount - 1);
-      log('PENDING_TIMEOUT', pb.token.symbol, mint, { type: 'buy', ageMs: now - pb.queuedAt });
+      pb.token.state = STATE.CLOSED;
+      pb.token.cooldownUntil = now / 1000 + 30;
+      log('PENDING_TIMEOUT', pb.token.symbol, mint, { type: 'buy', ageMs: now - pb.queuedAt, resetTo: 'CLOSED' });
       watchdogKills++;
     }
   }
@@ -1439,7 +1441,10 @@ function runWatchdog() {
     if (now - ps.queuedAt > PENDING_TIMEOUT_MS) {
       pendingSells.delete(mint);
       openCount = Math.max(0, openCount - 1);
-      log('PENDING_TIMEOUT', ps.token.symbol, mint, { type: 'sell', ageMs: now - ps.queuedAt });
+      ps.token.state = STATE.CLOSED;
+      ps.token.cooldownUntil = now / 1000 + 30;
+      ps.token.activeTrade = null;
+      log('PENDING_TIMEOUT', ps.token.symbol, mint, { type: 'sell', ageMs: now - ps.queuedAt, resetTo: 'CLOSED' });
       watchdogKills++;
     }
   }

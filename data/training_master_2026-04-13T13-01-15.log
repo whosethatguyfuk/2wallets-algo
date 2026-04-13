@@ -1037,3 +1037,55 @@
   FLOORED & READY: GoutGout MC=$19832 floor=$11457 aboveFloor=73.1%
   FLOORED & READY: 5B2F MC=$4768 floor=$4765 aboveFloor=0.1%
   FLOORED & READY: ADDICT MC=$9491 floor=$7751 aboveFloor=22.4%
+[2026-04-13 17:18:16] Session 5 | Check #4 | 44min remaining
+[2026-04-13 17:18:16] [S5-CHECK4] Taking state snapshot...
+  Version: 2.9.0
+  Registry: ? | Nursery: 50 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 47 | WR: 34%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 4 armed
+  !! GATE VIOLATION: YANNICK - SELL_PRESSURE
+  FLOORED & READY: pumpcar MC=$5971 floor=$5971 aboveFloor=0%
+  FLOORED & READY: GoutGout MC=$20027 floor=$11457 aboveFloor=74.8%
+  FLOORED & READY: 5B2F MC=$4763 floor=$4763 aboveFloor=0%
+  FLOORED & READY: GR MC=$5095 floor=$5095 aboveFloor=0%
+[2026-04-13 17:23:17] Session 5 | Check #5 | 39min remaining
+[2026-04-13 17:23:17] [S5-CHECK5] Taking state snapshot...
+  Version: 2.10.0
+  Registry: ? | Nursery: 59 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 0 | WR: 0%
+  States: {}
+  Blocked→Armed pipeline: 3 tokens blocked | 2 armed
+  !! GATE VIOLATION: GOUT - HISTORY
+  !! GATE VIOLATION: NEIL - HISTORY
+  FLOORED & READY: ADDICT MC=$10761 floor=$10186 aboveFloor=5.6%
+  FLOORED & READY: TAP MC=$26251 floor=$24275 aboveFloor=8.1%
+  FLOORED & READY: GoutGout MC=$18829 floor=$18808 aboveFloor=0.1%
+[2026-04-13 17:28:18] Session 5 | Check #6 | 34min remaining
+[2026-04-13 17:28:18] [S5-CHECK6] Taking state snapshot...
+  Version: 2.10.0
+  Registry: ? | Nursery: 35 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 9 | WR: 22.2%
+  States: {}
+  Blocked→Armed pipeline: 41 tokens blocked | 3 armed
+  !! GATE VIOLATION: NEIL - SELL_PRESSURE
+  FLOORED & READY: TAP MC=$14453 floor=$14377 aboveFloor=0.5%
+  FLOORED & READY: GoutGout MC=$12434 floor=$11612 aboveFloor=7.1%
+  FLOORED & READY: Kangaroo MC=$5688 floor=$5688 aboveFloor=0%
+[2026-04-13 17:33:19] Session 5 | Check #7 | 29min remaining
+[2026-04-13 17:33:19] [S5-CHECK7] Taking state snapshot...
+  Version: 2.10.0
+  Registry: ? | Nursery: 31 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 25 | WR: 20%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 6 armed
+  !! GATE VIOLATION: TAP - SELL_PRESSURE
+  !! GATE VIOLATION: FATOU - SELL_PRESSURE
+  !! GATE VIOLATION: HENRY - HISTORY
+  FLOORED & READY: GoutGout MC=$17483 floor=$11237 aboveFloor=55.6%
+  FLOORED & READY: Kangaroo MC=$5073 floor=$5073 aboveFloor=0%
+  FLOORED & READY: ZUCKERBOT MC=$4106 floor=$4106 aboveFloor=0%
