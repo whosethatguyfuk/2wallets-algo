@@ -787,8 +787,10 @@ function saveSnapshot() {
         floorTouches: t.floorTouches, historyFloorTouches: t.historyFloorTouches,
         maxEarlyBuySol: t.maxEarlyBuySol,
         resolvedBuyerCount: t.resolvedBuyerCount,
+        uniqueBuyersArr: [...(t.uniqueBuyers || [])],
         prevMcSol: t.prevMcSol,
         proven: t.proven || false,
+        isNurseryGrad: t.isNurseryGrad || false,
       };
     }
     fs.writeFileSync(SNAPSHOT_FILE, JSON.stringify(regSnap));
@@ -834,7 +836,11 @@ function loadSnapshot() {
           resolvedBuyerCount: snap.resolvedBuyerCount || 0,
           prevMcSol: snap.prevMcSol || 0,
           proven: snap.proven || false,
+          isNurseryGrad: snap.isNurseryGrad || false,
         });
+        if (snap.uniqueBuyersArr?.length) {
+          for (const w of snap.uniqueBuyersArr) token.uniqueBuyers.add(w);
+        }
 
         // Force-close any active trades from previous session
         if ([STATE.HOLDING, STATE.EXIT_UNLOCKED, STATE.BUYING].includes(token.state)) {
@@ -1073,7 +1079,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '2.4.2',
+    version:    '2.5.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,

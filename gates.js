@@ -67,12 +67,12 @@ export function qualityGate(token) {
     return pass(`quality ok (${buyerCount} buyers)${r2}`);
   }
 
-  // Old/seeded tokens still need a minimum buyer count
+  // Old/seeded tokens: 5+ floor touches proves trading activity even if buyers Set was lost
   const buyerCount = Math.max(
     token.uniqueBuyers?.size ?? 0,
     token.resolvedBuyerCount ?? 0
   );
-  if (buyerCount < QUALITY_MIN_BUYERS_OLD)
+  if (buyerCount < QUALITY_MIN_BUYERS_OLD && (token.floorTouches || 0) < 5)
     return fail(`only ${buyerCount} unique buyers on old pair, need ${QUALITY_MIN_BUYERS_OLD}`);
 
   const r2 = token.jitoBundle ? ' [jito-bundle, round-2]' : '';

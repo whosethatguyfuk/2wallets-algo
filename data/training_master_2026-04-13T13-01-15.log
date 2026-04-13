@@ -52,3 +52,15 @@
   FLOORED & READY: COW MC=$15407 floor=$15407 aboveFloor=0%
   FLOORED & READY: bel MC=$7085 floor=$7085 aboveFloor=0%
   FLOORED & READY: Psyop MC=$18210 floor=$16772 aboveFloor=8.6%
+[2026-04-13 13:16:18] Session 1 | Check #4 | 44min remaining
+[2026-04-13 13:16:18] [S1-CHECK4] Taking state snapshot...
+  Version: 2.4.2
+  Registry: ? | Nursery: 20 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 0 | WR: 0%
+  States: {}
+  Blocked→Armed pipeline: 4 tokens blocked | 1 armed
+  !! GATE VIOLATION: Camila  - QUALITY
+  FLOORED & READY: trumpmemes MC=$14510 floor=$14170 aboveFloor=2.4%
+  FLOORED & READY: defi MC=$12917 floor=$12360 aboveFloor=4.5%
+  FLOORED & READY: PATRICK MC=$8726 floor=$8012 aboveFloor=8.9%
