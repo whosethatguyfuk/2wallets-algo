@@ -456,3 +456,319 @@
   FLOORED & READY: HUTT MC=$13684 floor=$13278 aboveFloor=3.1%
   FLOORED & READY: Samba MC=$9147 floor=$6343 aboveFloor=44.2%
   FLOORED & READY: VOICEBOX MC=$11241 floor=$9790 aboveFloor=14.8%
+[2026-04-13 15:02:05] 
+[2026-04-13 15:02:05] Session 2 COMPLETE — Running comprehensive review...
+
+================================================================================
+  SESSION 2 HOURLY REVIEW — 2026-04-13T08:02:05.758457+00:00
+  Log: /Users/kashanrana/Downloads/Printar/2wallets/./data/session_2_2026-04-13T15-02.jsonl
+================================================================================
+
+  [1] SCANNING PUMP.FUN FOR BONDED / HIGH-PERFORMING COINS...
+    Found 135 total coins | 76 bonded | 5 significant (ATH>$15K)
+
+  [2] CROSS-REFERENCING WITH OUR REGISTRY...
+    Caught: 0 | Missed: 5 | Missed bonded: 5
+
+  [3] TRADE ANALYSIS...
+
+  [4] GATE COMPLIANCE...
+
+  [5] ERROR ACCOUNTING (our errors + data provider errors)...
+
+  [6] ASSEMBLING REPORT...
+
+================================================================================
+  SESSION 2 REPORT
+================================================================================
+
+  BOT STATUS
+    Version: 2.5.2 | Registry: 3 | Nursery: 38 | Born total: 38
+    PnL: +0.020412 SOL | Trades: 1 | WR: 100%
+    States: {'ARMED': 1, 'FLOORED': 2}
+
+  TRADE ANALYSIS (1 trades)
+    chair        entry=$  6955 exit=$  6001 PnL=-15.7% hold=10s reason=STOP_LOSS [BIG_LOSS_-15.7% | EXITED_EARLY_ATH_WAS_$15435]
+
+  MARKET COVERAGE
+    Significant coins (ATH>$15K): 5
+    Bonded coins: 76
+    WE CAUGHT: 0 | WE MISSED: 5 | Coverage: 0.0%
+
+    -- MISSED (top 15) --
+    mindbath     ATH=$1,626,695 MC=$1,623,849 bonded=True WHY: BONDED_DURING_SESSION, NEVER_DISCOVERED
+    Papa         ATH=$ 264,314 MC=$  97,118 bonded=True WHY: BONDED_DURING_SESSION, NEVER_DISCOVERED
+    REDBULL      ATH=$ 131,025 MC=$ 105,943 bonded=True WHY: BONDED_DURING_SESSION, NEVER_DISCOVERED
+    LIB          ATH=$ 113,159 MC=$  96,291 bonded=True WHY: BONDED_DURING_SESSION, IN_NURSERY_NOT_PROMOTED
+    CHOP         ATH=$  95,833 MC=$  74,832 bonded=True WHY: BONDED_DURING_SESSION, NEVER_DISCOVERED
+
+  GATE COMPLIANCE
+    Violations: 1 | Stuck WATCHING: 0 | Stale: 0
+    !! chair armed but RE_ENTRY fails: price $7140 is above last exit $6001 — not chasing
+
+  ERROR ACCOUNTING
+    Spot-checked: 3 tokens
+    Data errors found: 0
+    No data integrity issues found in spot checks
+
+  POSSIBLE ERROR SOURCES (to account for in analysis)
+    - PumpPortal: can misclassify buy/sell, report stale solAmount, silently drop subscriptions
+    - Our bot: MC direction override can flip sells to buys for catalyst, floor detection on thin data
+    - Pump.fun API: phantom MC (real_sol=0 but high MC), stale ATH, delayed migration status
+
+  RECOMMENDATIONS FOR NEXT SESSION
+    1. GATE_VIOLATIONS: 1 tokens armed with failing gates. Fix the state machine before next session.
+    2. MISSED_BONDED: CHOP bonded during session (ATH $95,833) but we didn't catch it. Root cause: ['BONDED_DURING_SESSION', 'NEVER_DISCOVERED']
+    3. MISSED_BONDED: REDBULL bonded during session (ATH $131,025) but we didn't catch it. Root cause: ['BONDED_DURING_SESSION', 'NEVER_DISCOVERED']
+    4. MISSED_BONDED: Papa bonded during session (ATH $264,314) but we didn't catch it. Root cause: ['BONDED_DURING_SESSION', 'NEVER_DISCOVERED']
+
+  Log saved to: /Users/kashanrana/Downloads/Printar/2wallets/./data/session_2_2026-04-13T15-02.jsonl
+================================================================================
+
+[2026-04-13 15:02:13] Session 2 review done.
+[2026-04-13 15:02:13] 
+[2026-04-13 15:02:13] 
+[2026-04-13 15:02:13] ################################################################
+[2026-04-13 15:02:13]   SESSION 3 / 6 — STARTING
+[2026-04-13 15:02:13] ################################################################
+[2026-04-13 15:02:13] Session 3 | Check #1 | 60min remaining
+[2026-04-13 15:02:13] [S3-CHECK1] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 43 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 1 | WR: 100%
+  States: {}
+  Blocked→Armed pipeline: 2 tokens blocked | 1 armed
+  !! GATE VIOLATION: chair - RE_ENTRY
+  FLOORED & READY: 阿杭 MC=$5515 floor=$4007 aboveFloor=37.6%
+[2026-04-13 15:07:14] Session 3 | Check #2 | 54min remaining
+[2026-04-13 15:07:14] [S3-CHECK2] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 58 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 1 | WR: 100%
+  States: {}
+  Blocked→Armed pipeline: 26 tokens blocked | 1 armed
+  FLOORED & READY: chair MC=$8741 floor=$6001 aboveFloor=45.7%
+  FLOORED & READY: 4K MC=$7310 floor=$6957 aboveFloor=5.1%
+  FLOORED & READY: ONE MC=$8084 floor=$8069 aboveFloor=0.2%
+[2026-04-13 15:12:15] Session 3 | Check #3 | 49min remaining
+[2026-04-13 15:12:15] [S3-CHECK3] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 36 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 1 | WR: 100%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 3 armed
+  !! GATE VIOLATION: 4K - HISTORY
+  FLOORED & READY: chair MC=$11035 floor=$6001 aboveFloor=83.9%
+  FLOORED & READY: ONE MC=$8351 floor=$8069 aboveFloor=3.5%
+  FLOORED & READY: 111 MC=$9112 floor=$2372 aboveFloor=284.1%
+  FLOORED & READY: TAP MC=$16130 floor=$10405 aboveFloor=55%
+[2026-04-13 15:17:16] Session 3 | Check #4 | 44min remaining
+[2026-04-13 15:17:16] [S3-CHECK4] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 46 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 1 | WR: 100%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 1 armed
+  FLOORED & READY: chair MC=$13910 floor=$6001 aboveFloor=131.8%
+  FLOORED & READY: ONE MC=$8147 floor=$8069 aboveFloor=1%
+  FLOORED & READY: 💋 MC=$13780 floor=$13780 aboveFloor=0%
+[2026-04-13 15:22:17] Session 3 | Check #5 | 39min remaining
+[2026-04-13 15:22:17] [S3-CHECK5] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 75 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 1 | WR: 100%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 2 armed
+  !! GATE VIOLATION: MUMU - SELL_PRESSURE
+  FLOORED & READY: chair MC=$12636 floor=$6001 aboveFloor=110.6%
+  FLOORED & READY: ONE MC=$8144 floor=$8069 aboveFloor=0.9%
+  FLOORED & READY: 💋 MC=$13765 floor=$13765 aboveFloor=0%
+[2026-04-13 15:27:18] Session 3 | Check #6 | 34min remaining
+[2026-04-13 15:27:18] [S3-CHECK6] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 75 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 1 | WR: 100%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 1 armed
+  FLOORED & READY: chair MC=$8713 floor=$6001 aboveFloor=45.2%
+  FLOORED & READY: ONE MC=$8230 floor=$8069 aboveFloor=2%
+  FLOORED & READY: 💋 MC=$13783 floor=$13765 aboveFloor=0.1%
+[2026-04-13 15:32:19] Session 3 | Check #7 | 29min remaining
+[2026-04-13 15:32:19] [S3-CHECK7] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 33 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 3 | WR: 66.7%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 2 armed
+  !! GATE VIOLATION: Samba - RE_ENTRY
+  FLOORED & READY: chair MC=$7901 floor=$6001 aboveFloor=31.7%
+  FLOORED & READY: ONE MC=$8235 floor=$8069 aboveFloor=2.1%
+  FLOORED & READY: 💋 MC=$13760 floor=$13760 aboveFloor=0%
+[2026-04-13 15:37:21] Session 3 | Check #8 | 24min remaining
+[2026-04-13 15:37:21] [S3-CHECK8] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 55 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 4 | WR: 50%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 3 armed
+  !! GATE VIOLATION: CrazyFrog - SELL_PRESSURE
+  FLOORED & READY: chair MC=$8509 floor=$6001 aboveFloor=41.8%
+  FLOORED & READY: ONE MC=$8760 floor=$8069 aboveFloor=8.6%
+  FLOORED & READY: 💋 MC=$12104 floor=$12104 aboveFloor=0%
+[2026-04-13 15:42:22] Session 3 | Check #9 | 19min remaining
+[2026-04-13 15:42:22] [S3-CHECK9] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 87 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 4 | WR: 50%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 2 armed
+  FLOORED & READY: chair MC=$8065 floor=$6001 aboveFloor=34.4%
+  FLOORED & READY: ONE MC=$8493 floor=$8069 aboveFloor=5.3%
+  FLOORED & READY: 💋 MC=$11696 floor=$11696 aboveFloor=0%
+[2026-04-13 15:47:23] Session 3 | Check #10 | 14min remaining
+[2026-04-13 15:47:23] [S3-CHECK10] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 50 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 4 | WR: 50%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 3 armed
+  !! GATE VIOLATION: DJT - HISTORY
+  FLOORED & READY: chair MC=$7288 floor=$6001 aboveFloor=21.5%
+  FLOORED & READY: ONE MC=$8497 floor=$8069 aboveFloor=5.3%
+  FLOORED & READY: 💋 MC=$11684 floor=$11681 aboveFloor=0%
+[2026-04-13 15:52:24] Session 3 | Check #11 | 9min remaining
+[2026-04-13 15:52:24] [S3-CHECK11] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 104 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 6 | WR: 50%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 4 armed
+  !! GATE VIOLATION: chair - RE_ENTRY
+  !! GATE VIOLATION: 💋 - HISTORY
+  FLOORED & READY: ONE MC=$8457 floor=$8069 aboveFloor=4.8%
+[2026-04-13 15:57:26] Session 3 | Check #12 | 4min remaining
+[2026-04-13 15:57:26] [S3-CHECK12] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 40 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 6 | WR: 50%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 2 armed
+  !! GATE VIOLATION: 💋 - SELL_PRESSURE
+  FLOORED & READY: chair MC=$6084 floor=$4839 aboveFloor=25.7%
+  FLOORED & READY: ONE MC=$9342 floor=$8069 aboveFloor=15.8%
+[2026-04-13 16:02:27] 
+[2026-04-13 16:02:27] Session 3 COMPLETE — Running comprehensive review...
+
+================================================================================
+  SESSION 3 HOURLY REVIEW — 2026-04-13T09:02:27.314619+00:00
+  Log: /Users/kashanrana/Downloads/Printar/2wallets/./data/session_3_2026-04-13T16-02.jsonl
+================================================================================
+
+  [1] SCANNING PUMP.FUN FOR BONDED / HIGH-PERFORMING COINS...
+    Found 134 total coins | 68 bonded | 7 significant (ATH>$15K)
+
+  [2] CROSS-REFERENCING WITH OUR REGISTRY...
+    Caught: 2 | Missed: 5 | Missed bonded: 5
+
+  [3] TRADE ANALYSIS...
+
+  [4] GATE COMPLIANCE...
+
+  [5] ERROR ACCOUNTING (our errors + data provider errors)...
+
+  [6] ASSEMBLING REPORT...
+
+================================================================================
+  SESSION 3 REPORT
+================================================================================
+
+  BOT STATUS
+    Version: 2.5.2 | Registry: 429 | Nursery: 43 | Born total: 876
+    PnL: +0.040831 SOL | Trades: 9 | WR: 55.6%
+    States: {'CLOSED': 2, 'FLOORED': 336, 'INDEXED': 75, 'ARMED': 2, 'BUYING': 4, 'WATCHING': 7, 'BLACKLISTED': 3}
+
+  TRADE ANALYSIS (12 trades)
+    chair        entry=$  5283 exit=$  5497 PnL=+2.0% hold=182s reason=EMERGENCY_STOP [clean]
+    TAP          entry=$  9648 exit=$ 10144 PnL=+3.1% hold=18s reason=SELLER_EXIT [clean]
+    💋            entry=$ 10814 exit=$ 10572 PnL=-4.2% hold=83s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$30630]
+    Psyop        entry=$ 14571 exit=$ 14642 PnL=-1.5% hold=128s reason=SELLER_EXIT [EXITED_EARLY_ATH_WAS_$25850]
+    ALPHA        entry=$  4543 exit=$  4544 PnL=-2.0% hold=181s reason=EMERGENCY_STOP [EXITED_EARLY_ATH_WAS_$8773]
+    CrazyFrog    entry=$  8158 exit=$  8499 PnL=+2.2% hold=31s reason=SELLER_EXIT [clean]
+    HENRY        entry=$  5039 exit=$  4763 PnL=-7.5% hold=12s reason=STOP_LOSS [BIG_LOSS_-7.5% | EXITED_EARLY_ATH_WAS_$20762]
+    Samba        entry=$  6921 exit=$  7159 PnL=+1.4% hold=29s reason=SELLER_EXIT [clean]
+    Samba        entry=$  8136 exit=$  8136 PnL=-2.0% hold=0s reason=SELLER_EXIT [INSTANT_EXIT | EXITED_EARLY_ATH_WAS_$22398]
+    Psyop        entry=$ 14566 exit=$ 14567 PnL=-2.0% hold=13s reason=EMERGENCY_STOP [EXITED_EARLY_ATH_WAS_$25850]
+    MUMU         entry=$  8717 exit=$  9601 PnL=+8.1% hold=185s reason=EMERGENCY_STOP [clean]
+    chair        entry=$  6955 exit=$  6001 PnL=-15.7% hold=10s reason=STOP_LOSS [BIG_LOSS_-15.7% | EXITED_EARLY_ATH_WAS_$15716]
+
+  MARKET COVERAGE
+    Significant coins (ATH>$15K): 7
+    Bonded coins: 68
+    WE CAUGHT: 2 | WE MISSED: 5 | Coverage: 28.6%
+
+    -- CAUGHT (top 10) --
+    LIB          ATH=$ 610,117 MC=$ 529,804 state=WATCHING traded=False
+    SORA         ATH=$  29,060 MC=$  16,862 state=INDEXED traded=False
+
+    -- MISSED (top 15) --
+    mindbath     ATH=$71,860,671 MC=$  86,141 bonded=True WHY: BONDED_DURING_SESSION, NEVER_DISCOVERED
+    TAROKO       ATH=$ 209,907 MC=$ 146,150 bonded=True WHY: BONDED_DURING_SESSION, NEVER_DISCOVERED
+    REDBULL      ATH=$ 163,323 MC=$ 112,763 bonded=True WHY: BONDED_DURING_SESSION, NEVER_DISCOVERED
+    pumphouse    ATH=$ 157,858 MC=$ 136,420 bonded=True WHY: BONDED_DURING_SESSION, NEVER_DISCOVERED
+    JesusTremp   ATH=$  85,120 MC=$  70,623 bonded=True WHY: BONDED_DURING_SESSION, NEVER_DISCOVERED
+
+  GATE COMPLIANCE
+    Violations: 1 | Stuck WATCHING: 0 | Stale: 207
+    !! TAP armed but RE_ENTRY fails: price $10496 is above last exit $10144 — not chasing
+
+  ERROR ACCOUNTING
+    Spot-checked: 10 tokens
+    Data errors found: 0
+    No data integrity issues found in spot checks
+
+  POSSIBLE ERROR SOURCES (to account for in analysis)
+    - PumpPortal: can misclassify buy/sell, report stale solAmount, silently drop subscriptions
+    - Our bot: MC direction override can flip sells to buys for catalyst, floor detection on thin data
+    - Pump.fun API: phantom MC (real_sol=0 but high MC), stale ATH, delayed migration status
+
+  RECOMMENDATIONS FOR NEXT SESSION
+    1. DISCOVERY_TOO_NARROW: We're missing more runners than we catch. Consider lowering nursery promotion thresholds or seeding more aggressively.
+    2. GATE_VIOLATIONS: 1 tokens armed with failing gates. Fix the state machine before next session.
+    3. STALENESS: 207/429 tokens stale. PP re-subscribe or API refresh may be failing.
+    4. MISSED_BONDED: REDBULL bonded during session (ATH $163,323) but we didn't catch it. Root cause: ['BONDED_DURING_SESSION', 'NEVER_DISCOVERED']
+    5. MISSED_BONDED: TAROKO bonded during session (ATH $209,907) but we didn't catch it. Root cause: ['BONDED_DURING_SESSION', 'NEVER_DISCOVERED']
+    6. MISSED_BONDED: JesusTremp bonded during session (ATH $85,120) but we didn't catch it. Root cause: ['BONDED_DURING_SESSION', 'NEVER_DISCOVERED']
+
+  Log saved to: /Users/kashanrana/Downloads/Printar/2wallets/./data/session_3_2026-04-13T16-02.jsonl
+================================================================================
+
+[2026-04-13 16:02:47] Session 3 review done.
+[2026-04-13 16:02:47] 
+[2026-04-13 16:02:47] 
+[2026-04-13 16:02:47] ################################################################
+[2026-04-13 16:02:47]   SESSION 4 / 6 — STARTING
+[2026-04-13 16:02:47] ################################################################
+[2026-04-13 16:02:47] Session 4 | Check #1 | 60min remaining
+[2026-04-13 16:02:47] [S4-CHECK1] Taking state snapshot...
+  Version: 2.5.2
+  Registry: ? | Nursery: 45 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 9 | WR: 55.6%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 3 armed
+  !! GATE VIOLATION: TAP - RE_ENTRY
+  !! GATE VIOLATION: BULLINA - SELL_PRESSURE
+  FLOORED & READY: Psyop MC=$16789 floor=$14226 aboveFloor=18%
+  FLOORED & READY: 💋 MC=$10598 floor=$10417 aboveFloor=1.7%

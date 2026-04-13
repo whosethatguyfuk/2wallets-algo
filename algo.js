@@ -293,6 +293,14 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
       transition(token, STATE.BLACKLISTED, `trade cap hit (${token.tradeCount})`, log);
       return null;
     }
+    // Fast re-arm: if price is still in arm zone, go straight to ARMED
+    const closedFloor = token.sessionLow || 0;
+    const closedAbove = closedFloor > 0 ? (mc - closedFloor) / closedFloor : 1;
+    if (closedAbove <= FLOOR_ARM_ZONE_PCT && mc >= ENTRY_MC_MIN && closedFloor > 0) {
+      token.armedAt = nowSec;
+      transition(token, STATE.ARMED, `re-armed at floor (${(closedAbove*100).toFixed(1)}% above $${closedFloor.toFixed(0)})`, log);
+      return { type: 'ARM', token };
+    }
     transition(token, STATE.FLOORED, 'cooldown expired, re-watching floor', log);
     return null;
   }
@@ -360,6 +368,12 @@ function closeTrade(token, mc, now, reason, log) {
   token.activeTrade  = null;
   token.lastExitMc   = exitMc;
 
+  // Floor re-arm: if we exited near the floor, the floor held — re-arm instantly.
+  // The "rejection" tested the floor; if another buy comes, we should be ready.
+  const floor = token.sessionLow || 0;
+  const exitAboveFloor = floor > 0 ? (exitMc - floor) / floor : 1;
+  const exitedAtFloor = exitAboveFloor <= FLOOR_ARM_ZONE_PCT;
+
   // Count consecutive losses for adaptive cooldown
   const recentTrades = token.closedTrades.slice(-3);
   const consecutiveLosses = recentTrades.length > 0
@@ -367,9 +381,15 @@ function closeTrade(token, mc, now, reason, log) {
     : 0;
   const lossStreak = consecutiveLosses === -1 ? recentTrades.length : consecutiveLosses;
 
-  let baseCooldown = reason === 'STOP_LOSS' || reason === 'CONVICTION_FADE'
-    ? 120 : REENTRY_COOLDOWN_SECS;
-  if (lossStreak >= 2) baseCooldown = 300;
+  let baseCooldown;
+  if (exitedAtFloor) {
+    baseCooldown = 5;
+  } else if (reason === 'STOP_LOSS' || reason === 'CONVICTION_FADE') {
+    baseCooldown = 120;
+  } else {
+    baseCooldown = REENTRY_COOLDOWN_SECS;
+  }
+  if (lossStreak >= 3) baseCooldown = Math.max(baseCooldown, 300);
   token.cooldownUntil = now / 1000 + baseCooldown;
 
   transition(token, STATE.CLOSED, `${reason} at $${exitMc.toFixed(0)} (${pnl > 0 ? '+' : ''}${pnl.toFixed(1)}%)`, log);
