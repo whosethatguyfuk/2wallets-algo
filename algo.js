@@ -368,8 +368,24 @@ function closeTrade(token, mc, now, reason, log) {
   token.activeTrade  = null;
   token.lastExitMc   = exitMc;
 
+  // ── Trailing floor: after a WIN, raise the floor to capture higher scalp levels ──
+  // The entry price becomes the new floor. Price can still naturally push sessionLow
+  // lower on dumps (line 104), so we never get stuck at a fake high floor.
+  // Reset floorTouches so the new level must PROVE itself (2 bounces) before arming.
+  const oldFloor = token.sessionLow || 0;
+  if (pnl > 0 && trade.entryMc > oldFloor * 1.05) {
+    const newFloor = Math.min(trade.entryMc, exitMc);
+    token.sessionLow = newFloor;
+    token.floorTouches = 0;
+    token.sessionHigh = Math.max(token.sessionHigh, exitMc);
+    log('FLOOR_RAISED', token.symbol, token.mint, {
+      oldFloor: Math.round(oldFloor),
+      newFloor: Math.round(newFloor),
+      reason: `winning trade +${pnl.toFixed(1)}%`,
+    });
+  }
+
   // Floor re-arm: if we exited near the floor, the floor held — re-arm instantly.
-  // The "rejection" tested the floor; if another buy comes, we should be ready.
   const floor = token.sessionLow || 0;
   const exitAboveFloor = floor > 0 ? (exitMc - floor) / floor : 1;
   const exitedAtFloor = exitAboveFloor <= FLOOR_ARM_ZONE_PCT;

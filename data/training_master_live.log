@@ -772,3 +772,42 @@
   !! GATE VIOLATION: BULLINA - SELL_PRESSURE
   FLOORED & READY: Psyop MC=$16789 floor=$14226 aboveFloor=18%
   FLOORED & READY: 💋 MC=$10598 floor=$10417 aboveFloor=1.7%
+[2026-04-13 16:07:48] Session 4 | Check #2 | 54min remaining
+[2026-04-13 16:07:48] [S4-CHECK2] Taking state snapshot...
+  Version: 2.6.0
+  Registry: ? | Nursery: 39 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 2 | WR: 100%
+  States: {}
+  Blocked→Armed pipeline: 1 tokens blocked | 2 armed
+  !! GATE VIOLATION: ND - SELL_PRESSURE
+  !! GATE VIOLATION: GR - RE_ENTRY
+  FLOORED & READY: NLFET MC=$7195 floor=$4738 aboveFloor=51.9%
+[2026-04-13 16:12:49] Session 4 | Check #3 | 49min remaining
+[2026-04-13 16:12:49] [S4-CHECK3] Taking state snapshot...
+  Version: 2.6.0
+  Registry: ? | Nursery: 62 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 3 | WR: 100%
+  States: {}
+  Blocked→Armed pipeline: 29 tokens blocked | 2 armed
+  !! GATE VIOLATION: pumphouse - RE_ENTRY
+  FLOORED & READY: NLFET MC=$4518 floor=$3520 aboveFloor=28.4%
+  FLOORED & READY: GR MC=$9668 floor=$7482 aboveFloor=29.2%
+  FLOORED & READY: 💋 MC=$8600 floor=$7845 aboveFloor=9.6%
+  FLOORED & READY: LAND MC=$9970 floor=$9288 aboveFloor=7.3%
+  FLOORED & READY: MUSK MC=$5075 floor=$5075 aboveFloor=0%
+[2026-04-13 16:17:50] Session 4 | Check #4 | 44min remaining
+[2026-04-13 16:17:50] [S4-CHECK4] Taking state snapshot...
+  Version: 2.6.0
+  Registry: ? | Nursery: 45 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 6 | WR: 66.7%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 3 armed
+  !! GATE VIOLATION: MUSK - HISTORY
+  FLOORED & READY: NLFET MC=$4895 floor=$3520 aboveFloor=39.1%
+  FLOORED & READY: GR MC=$8638 floor=$7482 aboveFloor=15.4%
+  FLOORED & READY: TAP MC=$8934 floor=$8934 aboveFloor=0%
+  FLOORED & READY: COW MC=$12641 floor=$11992 aboveFloor=5.4%
+  FLOORED & READY: HENRY MC=$4843 floor=$4841 aboveFloor=0%
