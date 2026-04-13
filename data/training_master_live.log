@@ -388,3 +388,71 @@
   FLOORED & READY: VOICEBOX MC=$13622 floor=$4413 aboveFloor=208.7%
   FLOORED & READY: OILLESS MC=$6602 floor=$6602 aboveFloor=0%
   FLOORED & READY: CrazyFrog MC=$15614 floor=$8296 aboveFloor=88.2%
+[2026-04-13 14:31:58] Session 2 | Check #7 | 29min remaining
+[2026-04-13 14:31:58] [S2-CHECK7] Taking state snapshot...
+  Version: 2.5.1
+  Registry: ? | Nursery: 85 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 0 | WR: 0%
+  States: {}
+  Blocked→Armed pipeline: 0 tokens blocked | 0 armed
+[2026-04-13 14:36:59] Session 2 | Check #8 | 24min remaining
+[2026-04-13 14:36:59] [S2-CHECK8] Taking state snapshot...
+  Version: 2.5.1
+  Registry: ? | Nursery: 138 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 3 | WR: 33.3%
+  States: {}
+  Blocked→Armed pipeline: 26 tokens blocked | 0 armed
+  FLOORED & READY: ONE MC=$8529 floor=$8070 aboveFloor=5.7%
+  FLOORED & READY: HUTT MC=$14313 floor=$13928 aboveFloor=2.8%
+  FLOORED & READY: Samba MC=$9085 floor=$6360 aboveFloor=42.8%
+  FLOORED & READY: CAGE MC=$6447 floor=$4579 aboveFloor=40.8%
+[2026-04-13 14:42:01] Session 2 | Check #9 | 19min remaining
+[2026-04-13 14:42:01] [S2-CHECK9] Taking state snapshot...
+  Version: 2.5.1
+  Registry: ? | Nursery: 96 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 4 | WR: 25%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 2 armed
+  FLOORED & READY: ONE MC=$8046 floor=$8046 aboveFloor=0%
+  FLOORED & READY: HUTT MC=$13278 floor=$13278 aboveFloor=0%
+  FLOORED & READY: Samba MC=$8188 floor=$6343 aboveFloor=29.1%
+  FLOORED & READY: VOICEBOX MC=$12098 floor=$10477 aboveFloor=15.5%
+[2026-04-13 14:47:02] Session 2 | Check #10 | 14min remaining
+[2026-04-13 14:47:02] [S2-CHECK10] Taking state snapshot...
+  Version: 2.5.1
+  Registry: ? | Nursery: 28 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 8 | WR: 12.5%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 2 armed
+  !! GATE VIOLATION: Psyop - SELL_PRESSURE
+  FLOORED & READY: ONE MC=$8042 floor=$8042 aboveFloor=0%
+  FLOORED & READY: HUTT MC=$13285 floor=$13278 aboveFloor=0.1%
+  FLOORED & READY: Samba MC=$13612 floor=$6343 aboveFloor=114.6%
+[2026-04-13 14:52:03] Session 2 | Check #11 | 9min remaining
+[2026-04-13 14:52:03] [S2-CHECK11] Taking state snapshot...
+  Version: 2.5.1
+  Registry: ? | Nursery: 44 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 10 | WR: 20%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 2 armed
+  FLOORED & READY: ONE MC=$8227 floor=$7977 aboveFloor=3.1%
+  FLOORED & READY: HUTT MC=$13305 floor=$13278 aboveFloor=0.2%
+  FLOORED & READY: Samba MC=$12498 floor=$6343 aboveFloor=97%
+[2026-04-13 14:57:04] Session 2 | Check #12 | 4min remaining
+[2026-04-13 14:57:04] [S2-CHECK12] Taking state snapshot...
+  Version: 2.5.1
+  Registry: ? | Nursery: 41 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 10 | WR: 20%
+  States: {}
+  Blocked→Armed pipeline: 50 tokens blocked | 3 armed
+  !! GATE VIOLATION: 阿杭 - HISTORY
+  FLOORED & READY: ONE MC=$8328 floor=$7977 aboveFloor=4.4%
+  FLOORED & READY: HUTT MC=$13684 floor=$13278 aboveFloor=3.1%
+  FLOORED & READY: Samba MC=$9147 floor=$6343 aboveFloor=44.2%
+  FLOORED & READY: VOICEBOX MC=$11241 floor=$9790 aboveFloor=14.8%

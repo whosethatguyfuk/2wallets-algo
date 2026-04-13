@@ -360,8 +360,16 @@ function closeTrade(token, mc, now, reason, log) {
   token.activeTrade  = null;
   token.lastExitMc   = exitMc;
 
-  const baseCooldown = reason === 'STOP_LOSS' || reason === 'CONVICTION_FADE'
+  // Count consecutive losses for adaptive cooldown
+  const recentTrades = token.closedTrades.slice(-3);
+  const consecutiveLosses = recentTrades.length > 0
+    ? recentTrades.reverse().findIndex(t => t.pnlPct > 0)
+    : 0;
+  const lossStreak = consecutiveLosses === -1 ? recentTrades.length : consecutiveLosses;
+
+  let baseCooldown = reason === 'STOP_LOSS' || reason === 'CONVICTION_FADE'
     ? 120 : REENTRY_COOLDOWN_SECS;
+  if (lossStreak >= 2) baseCooldown = 300;
   token.cooldownUntil = now / 1000 + baseCooldown;
 
   transition(token, STATE.CLOSED, `${reason} at $${exitMc.toFixed(0)} (${pnl > 0 ? '+' : ''}${pnl.toFixed(1)}%)`, log);
