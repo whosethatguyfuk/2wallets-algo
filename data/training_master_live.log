@@ -834,3 +834,15 @@
   !! GATE VIOLATION: pumpcar - SELL_PRESSURE
   FLOORED & READY: FI/RE MC=$33721 floor=$14315 aboveFloor=135.6%
   FLOORED & READY: LAND MC=$12624 floor=$12204 aboveFloor=3.4%
+[2026-04-13 16:32:53] Session 4 | Check #7 | 29min remaining
+[2026-04-13 16:32:53] [S4-CHECK7] Taking state snapshot...
+  Version: 2.7.0
+  Registry: ? | Nursery: 55 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 11 | WR: 18.2%
+  States: {}
+  Blocked→Armed pipeline: 40 tokens blocked | 4 armed
+  !! GATE VIOLATION: Bullcoin - RE_ENTRY
+  !! GATE VIOLATION: pumpcar - RE_ENTRY
+  !! GATE VIOLATION: TREES - SELL_PRESSURE
+  FLOORED & READY: Dog MC=$71696 floor=$71169 aboveFloor=0.7%

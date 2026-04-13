@@ -78,6 +78,14 @@ let   totalFeesSol  = 0;
 let   netPnlSol     = 0;
 let   realWalletSol = null;
 let   startingSol   = null;
+
+// ── Tracked wallets — detect their trades on our coins ─────────
+const TRACKED_WALLETS = new Map([
+  ['FYTVwP5hgCUiB14eYYTPtZpBCBL4tqbYFbRkjmRwbNto', 'Wallet-A'],
+  ['FLh66qAJLTgNepSET1FCQUqQR7SbuJGF5jRPqCg3kGEd', 'Wallet-B'],
+]);
+// Per-mint trade log: { mint → { walletTrades: [{ts, wallet, isBuy, sol, mc}], ourTrades: [{ts, isBuy, sol, mc, pnl}] } }
+const walletComparisons = new Map();
 let   solPrice      = 150;
 let   ppWs          = null;
 let   ppReady       = false;
@@ -689,6 +697,26 @@ function connectPP() {
       token.mayhemDetected = true;
     }
 
+    // Tracked wallet detection on our coins
+    const walletLabel = msg.traderPublicKey ? TRACKED_WALLETS.get(msg.traderPublicKey) : null;
+    if (walletLabel) {
+      if (!walletComparisons.has(mint)) {
+        walletComparisons.set(mint, { walletTrades: [], ourTrades: [] });
+      }
+      const comp = walletComparisons.get(mint);
+      comp.walletTrades.push({
+        ts: Date.now(), wallet: walletLabel, isBuy, sol, mc: Math.round(mc),
+        state: token.state, ourFloor: Math.round(token.sessionLow < Infinity ? token.sessionLow : 0),
+        ourArmed: token.state === 'ARMED',
+      });
+      log('WALLET_TRADE', token.symbol, mint, {
+        wallet: walletLabel, side: isBuy ? 'BUY' : 'SELL',
+        sol: sol.toFixed(3), mc: Math.round(mc),
+        ourState: token.state, ourFloor: Math.round(token.sessionLow < Infinity ? token.sessionLow : 0),
+        ourWins: token.winCount || 0, ourTradeCount: token.tradeCount || 0,
+      });
+    }
+
     // Process pending slippage buys/sells on each tick
     if (pendingBuys.has(mint)) {
       const pb = pendingBuys.get(mint);
@@ -701,6 +729,8 @@ function connectPP() {
         const trade = confirmBuy(pb.token, slippedMc, 'paper_' + Date.now(), 0, log);
         if (trade) {
           pb.token.proven = true;
+          if (!walletComparisons.has(mint)) walletComparisons.set(mint, { walletTrades: [], ourTrades: [] });
+          walletComparisons.get(mint).ourTrades.push({ ts: Date.now(), isBuy: true, sol: POSITION_SOL, mc: Math.round(slippedMc) });
           broadcast({ type: 'buy', mint, symbol: pb.token.symbol, mc: Math.round(slippedMc), jito: pb.token.jitoBundle, slipPct });
         } else { openCount = Math.max(0, openCount - 1); }
       }
@@ -719,6 +749,8 @@ function connectPP() {
         if (pnl > 0) { totalWins++; netPnlSol += POSITION_SOL * (pnl / 100); }
         else          { totalLosses++; netPnlSol += POSITION_SOL * (pnl / 100); }
         totalFeesSol += POSITION_SOL * TRADE_FEE_PCT;
+        if (!walletComparisons.has(mint)) walletComparisons.set(mint, { walletTrades: [], ourTrades: [] });
+        walletComparisons.get(mint).ourTrades.push({ ts: Date.now(), isBuy: false, sol: POSITION_SOL, mc: Math.round(slippedExitMc), pnl: +pnl.toFixed(2), reason: ps.reason });
         broadcast({ type: 'sell', mint, symbol: ps.token.symbol, pnl: pnl.toFixed(2), reason: ps.reason, exitMc: Math.round(slippedExitMc), slipPct });
       }
     }
@@ -1158,6 +1190,31 @@ app.get('/api/diag', (_req, res) => {
     note: 'use /api/stats for state info, /api/nursery for nursery',
     ppMsgLog: global._ppMsgLog || [],
   });
+});
+
+app.get('/api/wallet-compare', (_req, res) => {
+  const result = [];
+  for (const [mint, comp] of walletComparisons) {
+    const token = registry.get(mint);
+    if (comp.walletTrades.length === 0 && comp.ourTrades.length === 0) continue;
+    result.push({
+      mint,
+      symbol: token?.symbol || '?',
+      mc: Math.round(token?.currentMc || 0),
+      floor: Math.round(token?.sessionLow < Infinity ? (token?.sessionLow || 0) : 0),
+      ath: Math.round(token?.sessionHigh || 0),
+      state: token?.state || '?',
+      ourWins: token?.winCount || 0,
+      ourTradeCount: token?.tradeCount || 0,
+      walletTrades: comp.walletTrades,
+      ourTrades: comp.ourTrades,
+      walletBuys: comp.walletTrades.filter(t => t.isBuy).length,
+      walletSells: comp.walletTrades.filter(t => !t.isBuy).length,
+      ourBuys: comp.ourTrades.filter(t => t.isBuy).length,
+      ourSells: comp.ourTrades.filter(t => !t.isBuy).length,
+    });
+  }
+  res.json(result.sort((a, b) => b.walletTrades.length - a.walletTrades.length));
 });
 
 app.get('/api/audit', (_req, res) => {
