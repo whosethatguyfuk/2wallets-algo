@@ -43,7 +43,7 @@ export const ARM_TIMEOUT_SECS     = 300;      // disarm if no catalyst in 5 min
 
 // ── Execution ───────────────────────────────────────────────────
 export const POSITION_SOL         = Number(process.env.POSITION_SOL) || 0.2;
-export const MAX_CONCURRENT       = 3;
+export const MAX_CONCURRENT       = 5;
 
 // ── Hold ────────────────────────────────────────────────────────
 export const MIN_HOLD_SECS        = 0;        // no minimum hold — order flow decides
@@ -59,7 +59,16 @@ export const MAX_HOLD_SECS        = 180;      // 3 min hard cap
 // ── Re-entry rules ──────────────────────────────────────────────
 export const REENTRY_MAX_ABOVE_EXIT = 0.02;
 export const REENTRY_COOLDOWN_SECS  = 60;
-export const MAX_TRADES_PER_TOKEN   = 5;
+export const MAX_TRADES_PER_TOKEN   = 20;
+
+// ── Proven token fast-track ─────────────────────────────────────
+// Once a token has 1+ winning trades, loosen safety checks for rapid re-scalping.
+// Mirrors observed behavior of top wallets: 10-20 scalps on same coin, minimal gaps.
+export const PROVEN_FLOOR_TOUCHES     = 1;      // only need 1 bounce (vs 2 normally)
+export const PROVEN_COOLDOWN_SECS     = 5;      // re-arm in 5s after any exit (vs 60s)
+export const PROVEN_LOSS_COOLDOWN     = 60;     // 60s after 3+ loss streak (vs 300s)
+export const PROVEN_REENTRY_ABOVE_EXIT = 0.10;  // allow 10% above last exit (vs 2%)
+export const PROVEN_ARM_ZONE_PCT      = 0.30;   // wider arm zone 30% (vs 20%)
 
 // ── Mayhem blacklist ────────────────────────────────────────────
 export const MAYHEM_AGENT_WALLET  = "BwWK17cbHxwWBKZkUYvzxLcNQ1YVyaFezduWbtm2de6s";

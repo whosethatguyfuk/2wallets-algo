@@ -791,6 +791,7 @@ function saveSnapshot() {
         prevMcSol: t.prevMcSol,
         proven: t.proven || false,
         isNurseryGrad: t.isNurseryGrad || false,
+        winCount: t.winCount || 0,
       };
     }
     fs.writeFileSync(SNAPSHOT_FILE, JSON.stringify(regSnap));
@@ -837,6 +838,7 @@ function loadSnapshot() {
           prevMcSol: snap.prevMcSol || 0,
           proven: snap.proven || false,
           isNurseryGrad: snap.isNurseryGrad || false,
+          winCount: snap.winCount || 0,
         });
         if (snap.uniqueBuyersArr?.length) {
           for (const w of snap.uniqueBuyersArr) token.uniqueBuyers.add(w);
@@ -1079,7 +1081,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '2.7.0',
+    version:    '2.8.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,
@@ -1098,6 +1100,8 @@ app.get('/api/stats', (_req, res) => {
     laserSlots: laserSlots.size,
     watchdogRuns, watchdogKills,
     byState, activeTokens,
+    provenTokens: tokens.filter(t => (t.winCount || 0) >= 1).length,
+    maxConcurrent: 5,
   });
 });
 
@@ -1111,6 +1115,8 @@ app.get('/api/registry', (_req, res) => {
     histLoaded: t.historyLoaded, histTrades: t.historyTrades,
     liveTrades: t.liveTrades || 0, isSeeded: t.isSeeded || false,
     jitoBundle: t.jitoBundle, bundlePeakMc: Math.round(t.bundlePeakMc || 0),
+    tradeCount: t.tradeCount || 0, winCount: t.winCount || 0,
+    proven: t.proven || false,
     lastTick: t.lastTickTs ? Math.round((Date.now() - t.lastTickTs) / 1000) + 's ago' : 'never',
     lastTickTs: t.lastTickTs || 0,
   })).sort((a, b) => b.ath - a.ath);

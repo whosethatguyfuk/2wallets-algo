@@ -21,6 +21,7 @@ import {
   TRAIL_ACTIVATE_PCT, TRAIL_KEEP_PCT, MAX_HOLD_SECS,
   MIN_HOLD_SECS,
   MAYHEM_AGENT_WALLET, STATE,
+  PROVEN_FLOOR_TOUCHES, PROVEN_REENTRY_ABOVE_EXIT, PROVEN_ARM_ZONE_PCT,
 } from './rules.js';
 
 // ── helpers ──────────────────────────────────────────────────────
@@ -30,6 +31,8 @@ const pct  = (a, b)          => ((a - b) / b * 100).toFixed(1) + '%';
 
 // ── GATE 1: History Gate ─────────────────────────────────────────
 export function historyGate(token) {
+  if ((token.winCount || 0) >= 1)
+    return pass(`proven token (${token.winCount} wins) — history already validated`);
   if (!token.historyLoaded)
     return fail(`history not loaded yet`);
   if (token.isNurseryGrad)
@@ -51,6 +54,9 @@ export function qualityGate(token) {
 
   if (token.vSol > MAX_POOL_SOL)
     return fail(`pool too large: ${token.vSol.toFixed(1)} SOL (max ${MAX_POOL_SOL})`);
+
+  if ((token.winCount || 0) >= 1)
+    return pass(`proven token (${token.winCount} wins) — quality already validated`);
 
   if (token.category === 'new') {
     if (token.maxEarlyBuySol > QUALITY_MAX_BUY_SOL)
@@ -93,10 +99,13 @@ export function floorGate(token) {
   const confirmedTouches = token.confirmedFloorTouches || 0;
   const touches = Math.max(liveTouches, histTouches, confirmedTouches);
 
-  if (touches < FLOOR_MIN_TOUCHES)
-    return fail(`floor at $${floor.toFixed(0)} only touched ${touches}x, need ${FLOOR_MIN_TOUCHES} (live:${liveTouches} hist:${histTouches})`);
+  const isProven = (token.winCount || 0) >= 1;
+  const minTouches = isProven ? PROVEN_FLOOR_TOUCHES : FLOOR_MIN_TOUCHES;
 
-  return pass(`floor confirmed at $${floor.toFixed(0)} (${touches} touches — live:${liveTouches} hist:${histTouches})`);
+  if (touches < minTouches)
+    return fail(`floor at $${floor.toFixed(0)} only touched ${touches}x, need ${minTouches}${isProven ? ' [PROVEN]' : ''} (live:${liveTouches} hist:${histTouches})`);
+
+  return pass(`floor confirmed at $${floor.toFixed(0)} (${touches} touches — live:${liveTouches} hist:${histTouches})${isProven ? ' [PROVEN]' : ''}`);
 }
 
 // ── GATE 4: Arm Zone Gate ────────────────────────────────────────
@@ -107,14 +116,16 @@ export function armZoneGate(token) {
   if (!floor || !current) return fail(`missing floor or current MC`);
 
   const aboveFloor = (current - floor) / floor;
+  const isProven = (token.winCount || 0) >= 1;
+  const maxAbove = isProven ? PROVEN_ARM_ZONE_PCT : FLOOR_ARM_ZONE_PCT;
 
-  if (aboveFloor > FLOOR_ARM_ZONE_PCT)
-    return fail(`price $${current.toFixed(0)} is ${pct(current, floor)} above floor $${floor.toFixed(0)} — not in arm zone (max ${(FLOOR_ARM_ZONE_PCT*100).toFixed(0)}% above floor)`);
+  if (aboveFloor > maxAbove)
+    return fail(`price $${current.toFixed(0)} is ${pct(current, floor)} above floor $${floor.toFixed(0)} — not in arm zone (max ${(maxAbove*100).toFixed(0)}%)${isProven ? ' [PROVEN]' : ''}`);
 
   if (current < floor * 0.85)
     return fail(`price $${current.toFixed(0)} is below floor — possible floor break`);
 
-  return pass(`price $${current.toFixed(0)} is within arm zone (${pct(current, floor)} above floor $${floor.toFixed(0)})`);
+  return pass(`price $${current.toFixed(0)} is within arm zone (${pct(current, floor)} above floor $${floor.toFixed(0)})${isProven ? ' [PROVEN]' : ''}`);
 }
 
 // ── GATE 5: Entry MC Gate ────────────────────────────────────────
@@ -139,11 +150,13 @@ export function reentryGate(token) {
   if (token.cooldownUntil && now < token.cooldownUntil)
     return fail(`cooldown: ${(token.cooldownUntil - now).toFixed(0)}s remaining`);
 
-  if (token.lastExitMc && token.currentMc > token.lastExitMc * (1 + REENTRY_MAX_ABOVE_EXIT))
-    return fail(`price $${token.currentMc.toFixed(0)} is above last exit $${token.lastExitMc.toFixed(0)} — not chasing`);
+  const isProven = (token.winCount || 0) >= 1;
+  const maxAboveExit = isProven ? PROVEN_REENTRY_ABOVE_EXIT : REENTRY_MAX_ABOVE_EXIT;
+  if (token.lastExitMc && token.currentMc > token.lastExitMc * (1 + maxAboveExit))
+    return fail(`price $${token.currentMc.toFixed(0)} is ${isProven ? '10' : '2'}%+ above last exit $${token.lastExitMc.toFixed(0)} — not chasing`);
 
   return pass(token.lastExitMc
-    ? `re-entry ok (current $${token.currentMc.toFixed(0)} ≤ last exit $${token.lastExitMc.toFixed(0)})`
+    ? `re-entry ok (current $${token.currentMc.toFixed(0)} ≤ last exit $${token.lastExitMc.toFixed(0)})${isProven ? ' [PROVEN]' : ''}`
     : `first entry on this token`);
 }
 
@@ -158,9 +171,9 @@ export function concurrencyGate(openCount) {
 export function sellPressureGate(token) {
   const hist = token.mcHistory || [];
   const recent = hist.length > 1 ? hist.slice(-13, -1) : [];
-  // Slow-trading tokens (old/seeded) only need 2 pre-catalyst ticks
-  const minTicks = (token.category === 'old' || token.isSeeded) ? 2 : 4;
-  if (recent.length < minTicks) return fail(`low activity: only ${recent.length} pre-catalyst ticks (need ${minTicks})`);
+  const isProven = (token.winCount || 0) >= 1;
+  const minTicks = isProven ? 2 : (token.category === 'old' || token.isSeeded) ? 2 : 4;
+  if (recent.length < minTicks) return fail(`low activity: only ${recent.length} pre-catalyst ticks (need ${minTicks})${isProven ? ' [PROVEN]' : ''}`);
   let buySol = 0, sellSol = 0;
   for (const h of recent) {
     if (h.isBuy) buySol += (h.sol || 0);

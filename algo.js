@@ -21,7 +21,9 @@ import { STATE, MIN_HOLD_SECS, REENTRY_COOLDOWN_SECS,
          MAX_TRADES_PER_TOKEN, FLOOR_TOUCH_PCT,
          FLOOR_ARM_ZONE_PCT, STOP_LOSS_PCT,
          ENTRY_MC_MIN, ROUND2_PUMP_MULT,
-         JITO_ROUND2_MIN_ATH, HISTORY_MIN_TRADES } from './rules.js';
+         JITO_ROUND2_MIN_ATH, HISTORY_MIN_TRADES,
+         PROVEN_COOLDOWN_SECS, PROVEN_LOSS_COOLDOWN,
+         PROVEN_ARM_ZONE_PCT } from './rules.js';
 
 import { runEntryGates, runExitGates, floorGate } from './gates.js';
 
@@ -76,6 +78,7 @@ export function makeToken(mint, symbol, name, category) {
     cooldownUntil:   0,
     blacklistedUntil:0,
     tradeCount:      0,
+    winCount:        0,
     closedTrades:    [],
   };
 }
@@ -222,23 +225,21 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     const floor      = token.sessionLow;
     const aboveFloor = (mc - floor) / floor;
 
-    const hasRealPump = token.sessionHigh > floor * 1.30;
+    const isProven = (token.winCount || 0) >= 1;
+    const hasRealPump = isProven || token.sessionHigh > floor * 1.30;
+    const effectiveArmZone = isProven ? PROVEN_ARM_ZONE_PCT : FLOOR_ARM_ZONE_PCT;
 
-    // Round-2 gate for Jito bundles: must have a second organic pump
-    // sessionHigh > floor × ROUND2_PUMP_MULT proves organic demand after bundler dump
     if (token.jitoBundle) {
       const round2Ready = token.sessionHigh > floor * ROUND2_PUMP_MULT;
       if (!round2Ready) return null;
     }
 
-    // Pre-arm history check: skip for nursery grads (complete data from birth)
-    // or tokens with 5+ floor touches (data quality proven by repeated floor tests)
-    if (!token.isNurseryGrad && (token.floorTouches || 0) < 5) {
+    if (!isProven && !token.isNurseryGrad && (token.floorTouches || 0) < 5) {
       const totalKnownArm = (token.historyTrades || 0) + (token.liveTrades || 0);
       if (totalKnownArm < HISTORY_MIN_TRADES) return null;
     }
 
-    if (aboveFloor <= FLOOR_ARM_ZONE_PCT && mc > floor * 0.85 && hasRealPump && mc >= ENTRY_MC_MIN) {
+    if (aboveFloor <= effectiveArmZone && mc > floor * 0.85 && hasRealPump && mc >= ENTRY_MC_MIN) {
       token.armedAt = nowSec;
       token.confirmedFloorTouches = Math.max(
         token.historyFloorTouches || 0,
@@ -293,12 +294,14 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
       transition(token, STATE.BLACKLISTED, `trade cap hit (${token.tradeCount})`, log);
       return null;
     }
-    // Fast re-arm: if price is still in arm zone, go straight to ARMED
+    const closedIsProven = (token.winCount || 0) >= 1;
+    const closedArmZone = closedIsProven ? PROVEN_ARM_ZONE_PCT : FLOOR_ARM_ZONE_PCT;
     const closedFloor = token.sessionLow || 0;
     const closedAbove = closedFloor > 0 ? (mc - closedFloor) / closedFloor : 1;
-    if (closedAbove <= FLOOR_ARM_ZONE_PCT && mc >= ENTRY_MC_MIN && closedFloor > 0) {
+    if (closedAbove <= closedArmZone && mc >= ENTRY_MC_MIN && closedFloor > 0) {
       token.armedAt = nowSec;
-      transition(token, STATE.ARMED, `re-armed at floor (${(closedAbove*100).toFixed(1)}% above $${closedFloor.toFixed(0)})`, log);
+      const pTag = closedIsProven ? ' [PROVEN]' : '';
+      transition(token, STATE.ARMED, `re-armed at floor (${(closedAbove*100).toFixed(1)}% above $${closedFloor.toFixed(0)})${pTag}`, log);
       return { type: 'ARM', token };
     }
     transition(token, STATE.FLOORED, 'cooldown expired, re-watching floor', log);
@@ -368,29 +371,29 @@ function closeTrade(token, mc, now, reason, log) {
   token.activeTrade  = null;
   token.lastExitMc   = exitMc;
 
+  if (pnl > 0) token.winCount = (token.winCount || 0) + 1;
+  const isProvenNow = (token.winCount || 0) >= 1;
+
   // ── Trailing floor: after a WIN, raise the floor to capture higher scalp levels ──
-  // The entry price becomes the new floor. Price can still naturally push sessionLow
-  // lower on dumps (line 104), so we never get stuck at a fake high floor.
-  // Reset floorTouches so the new level must PROVE itself (2 bounces) before arming.
   const oldFloor = token.sessionLow || 0;
   if (pnl > 0 && trade.entryMc > oldFloor * 1.05) {
     const newFloor = Math.min(trade.entryMc, exitMc);
     token.sessionLow = newFloor;
-    token.floorTouches = 0;
+    // Proven tokens: set to 1 so they only need 1 more bounce (not 2)
+    token.floorTouches = isProvenNow ? 1 : 0;
     token.sessionHigh = Math.max(token.sessionHigh, exitMc);
     log('FLOOR_RAISED', token.symbol, token.mint, {
       oldFloor: Math.round(oldFloor),
       newFloor: Math.round(newFloor),
+      proven: isProvenNow,
       reason: `winning trade +${pnl.toFixed(1)}%`,
     });
   }
 
-  // Floor re-arm: if we exited near the floor, the floor held — re-arm instantly.
   const floor = token.sessionLow || 0;
   const exitAboveFloor = floor > 0 ? (exitMc - floor) / floor : 1;
   const exitedAtFloor = exitAboveFloor <= FLOOR_ARM_ZONE_PCT;
 
-  // Count consecutive losses for adaptive cooldown
   const recentTrades = token.closedTrades.slice(-3);
   const consecutiveLosses = recentTrades.length > 0
     ? recentTrades.reverse().findIndex(t => t.pnlPct > 0)
@@ -398,14 +401,18 @@ function closeTrade(token, mc, now, reason, log) {
   const lossStreak = consecutiveLosses === -1 ? recentTrades.length : consecutiveLosses;
 
   let baseCooldown;
-  if (exitedAtFloor) {
+  if (isProvenNow) {
+    // Proven tokens: rapid re-arm unless bleeding
+    baseCooldown = PROVEN_COOLDOWN_SECS;
+    if (lossStreak >= 3) baseCooldown = PROVEN_LOSS_COOLDOWN;
+  } else if (exitedAtFloor) {
     baseCooldown = 5;
   } else if (reason === 'STOP_LOSS' || reason === 'CONVICTION_FADE') {
     baseCooldown = 120;
   } else {
     baseCooldown = REENTRY_COOLDOWN_SECS;
   }
-  if (lossStreak >= 3) baseCooldown = Math.max(baseCooldown, 300);
+  if (!isProvenNow && lossStreak >= 3) baseCooldown = Math.max(baseCooldown, 300);
   token.cooldownUntil = now / 1000 + baseCooldown;
 
   transition(token, STATE.CLOSED, `${reason} at $${exitMc.toFixed(0)} (${pnl > 0 ? '+' : ''}${pnl.toFixed(1)}%)`, log);

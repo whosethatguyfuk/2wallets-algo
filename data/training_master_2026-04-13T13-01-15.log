@@ -811,3 +811,26 @@
   FLOORED & READY: TAP MC=$8934 floor=$8934 aboveFloor=0%
   FLOORED & READY: COW MC=$12641 floor=$11992 aboveFloor=5.4%
   FLOORED & READY: HENRY MC=$4843 floor=$4841 aboveFloor=0%
+[2026-04-13 16:22:51] Session 4 | Check #5 | 39min remaining
+[2026-04-13 16:22:51] [S4-CHECK5] Taking state snapshot...
+  Version: 2.7.0
+  Registry: ? | Nursery: 7 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 3 | WR: 33.3%
+  States: {}
+  Blocked→Armed pipeline: 2 tokens blocked | 2 armed
+  !! GATE VIOLATION: FI/RE - SELL_PRESSURE
+  FLOORED & READY: LAND MC=$12357 floor=$12210 aboveFloor=1.2%
+  FLOORED & READY: pumphouse MC=$7139 floor=$6938 aboveFloor=2.9%
+[2026-04-13 16:27:52] Session 4 | Check #6 | 34min remaining
+[2026-04-13 16:27:52] [S4-CHECK6] Taking state snapshot...
+  Version: 2.7.0
+  Registry: ? | Nursery: 66 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 6 | WR: 33.3%
+  States: {}
+  Blocked→Armed pipeline: 6 tokens blocked | 2 armed
+  !! GATE VIOLATION: pumphouse - HISTORY
+  !! GATE VIOLATION: pumpcar - SELL_PRESSURE
+  FLOORED & READY: FI/RE MC=$33721 floor=$14315 aboveFloor=135.6%
+  FLOORED & READY: LAND MC=$12624 floor=$12204 aboveFloor=3.4%
