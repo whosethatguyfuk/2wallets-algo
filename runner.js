@@ -990,7 +990,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '2.0.0',
+    version:    '2.1.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,
@@ -1207,6 +1207,107 @@ function runWatchdog() {
 }
 setInterval(runWatchdog, 5_000);
 console.log('🐕 Watchdog started (5s interval)');
+
+// ── PP Re-subscribe: every 30s force re-sub all active tokens ────
+setInterval(() => {
+  if (!ppWs || ppWs.readyState !== 1) return;
+  const activeMints = [];
+  for (const [mint, token] of registry) {
+    if ([STATE.BLACKLISTED].includes(token.state)) continue;
+    activeMints.push(mint);
+  }
+  if (activeMints.length > 0) {
+    ppWs.send(JSON.stringify({ method: 'subscribeTokenTrade', keys: activeMints }));
+  }
+}, 30_000);
+console.log('🔄 PP re-subscribe every 30s');
+
+// ── Pump.fun API refresh: update stale tokens every 2 min ────────
+async function refreshStaleTokens() {
+  const now = Date.now();
+  const STALE_THRESHOLD = 90_000;
+  const toRefresh = [];
+
+  for (const [mint, token] of registry) {
+    if ([STATE.BLACKLISTED].includes(token.state)) continue;
+    if (token.state === STATE.HOLDING || token.state === STATE.EXIT_UNLOCKED) continue;
+    const lastTick = token.lastTickTs || 0;
+    if (now - lastTick > STALE_THRESHOLD) {
+      toRefresh.push(mint);
+    }
+  }
+
+  if (toRefresh.length === 0) return;
+
+  let refreshed = 0, migrated = 0, removed = 0;
+  for (const mint of toRefresh) {
+    const token = registry.get(mint);
+    if (!token) continue;
+
+    try {
+      const r = await fetch(`https://frontend-api-v3.pump.fun/coins/${mint}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        signal: AbortSignal.timeout(5_000),
+      });
+      if (!r.ok) continue;
+      const d = await r.json();
+
+      // Migration detection — token left the bonding curve
+      if (d.complete || d.raydium_pool) {
+        log('MIGRATED', token.symbol, mint, {
+          mc: Math.round(token.currentMc),
+          realMc: Math.round(d.usd_market_cap || 0),
+          dest: d.raydium_pool ? 'raydium' : 'graduated',
+        });
+        // Unsubscribe and remove — no point watching a migrated token on PP
+        if (ppWs && ppWs.readyState === 1) {
+          ppWs.send(JSON.stringify({ method: 'unsubscribeTokenTrade', keys: [mint] }));
+        }
+        registry.delete(mint);
+        migrated++;
+        continue;
+      }
+
+      // Update MC from API
+      const realMc = d.usd_market_cap || 0;
+      if (realMc > 0) {
+        const oldMc = token.currentMc;
+        token.currentMc = realMc;
+        token.lastTickTs = now;
+
+        // Update ATH from pump.fun (they track lifetime ATH)
+        const realAth = d.ath_market_cap || 0;
+        if (realAth > token.sessionHigh) {
+          token.sessionHigh = realAth;
+        }
+
+        // Update session low if token dropped
+        if (realMc < token.sessionLow && realMc > 0) {
+          token.sessionLow = realMc;
+        }
+
+        // Feed a synthetic tick to the state machine
+        const event = onTick(token, realMc, now, false, 0, openCount, false, log);
+        if (event) handleEvent(event).catch(() => {});
+        refreshed++;
+      }
+    } catch {}
+
+    // Pace: 300ms between API calls
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  if (refreshed > 0 || migrated > 0) {
+    log('API_REFRESH', 'system', 'system', {
+      refreshed, migrated,
+      checked: toRefresh.length,
+      registrySize: registry.size,
+    });
+  }
+}
+setInterval(() => refreshStaleTokens().catch(e => console.error('refresh err:', e.message)), 2 * 60_000);
+setTimeout(() => refreshStaleTokens().catch(() => {}), 30_000);
+console.log('🔄 Pump.fun API refresh every 2min for stale tokens');
 
 // ── PP Heartbeat ─────────────────────────────────────────────────
 setInterval(() => {
