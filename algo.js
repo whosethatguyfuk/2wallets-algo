@@ -64,6 +64,9 @@ export function makeToken(mint, symbol, name, category) {
     // Arm
     armedAt:         0,
 
+    // Proven flag — never prune if true
+    proven:          false,
+
     // Trade tracking
     activeTrade:     null,
     lastExitMc:      null,
@@ -268,6 +271,7 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
       return null;
     }
 
+    token.proven = true;
     transition(token, STATE.BUYING, 'all entry gates passed', log);
     return { type: 'OPEN_TRADE', token };
   }

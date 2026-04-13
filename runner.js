@@ -82,6 +82,8 @@ let   watchdogRuns  = 0;
 let   watchdogKills = 0;
 let   nurseryTotal  = 0;
 const sseClients    = new Set();
+const pendingBuys   = new Map();   // mint → { token, triggerMc, ticksLeft }
+const pendingSells  = new Map();   // mint → { token, trade, reason, triggerExitMc, ticksLeft }
 
 // ── Logging ──────────────────────────────────────────────────────
 const DATA_DIR = path.join(__dirname, 'data');
@@ -462,12 +464,9 @@ async function handleEvent(event) {
     const mc = token.currentMc;
 
     if (!REAL_TRADING) {
-      const trade = confirmBuy(token, mc, 'paper_' + Date.now(), 0, log);
-      if (trade) {
-        netPnlSol -= POSITION_SOL * 0.005;
-        totalFeesSol += POSITION_SOL * 0.005;
-        broadcast({ type: 'buy', mint: token.mint, symbol: token.symbol, mc: Math.round(mc), jito: token.jitoBundle });
-      } else { openCount = Math.max(0, openCount - 1); }
+      const slippageTicks = 1 + Math.floor(Math.random() * 3); // 1-3 ticks delay
+      log('SLIPPAGE_QUEUE_BUY', token.symbol, token.mint, { triggerMc: Math.round(mc), delayTicks: slippageTicks });
+      pendingBuys.set(token.mint, { token, triggerMc: mc, ticksLeft: slippageTicks });
       return;
     }
 
@@ -487,6 +486,14 @@ async function handleEvent(event) {
 
   if (event.type === 'CLOSE_TRADE') {
     const { token, trade, reason, exitMc } = event;
+
+    if (!REAL_TRADING && trade) {
+      const slippageTicks = 1 + Math.floor(Math.random() * 3); // 1-3 ticks delay
+      log('SLIPPAGE_QUEUE_SELL', token.symbol, token.mint, { triggerExitMc: Math.round(exitMc), reason, delayTicks: slippageTicks });
+      pendingSells.set(token.mint, { token, trade, reason, triggerExitMc: exitMc, ticksLeft: slippageTicks });
+      return;
+    }
+
     openCount = Math.max(0, openCount - 1);
 
     if (trade) {
@@ -651,6 +658,43 @@ function connectPP() {
       token.mayhemDetected = true;
     }
 
+    // Process pending slippage buys/sells on each tick
+    if (pendingBuys.has(mint)) {
+      const pb = pendingBuys.get(mint);
+      pb.ticksLeft--;
+      if (pb.ticksLeft <= 0) {
+        pendingBuys.delete(mint);
+        const slippedMc = mc;
+        const slipPct = ((slippedMc - pb.triggerMc) / pb.triggerMc * 100).toFixed(2);
+        log('SLIPPAGE_BUY', pb.token.symbol, mint, { triggerMc: Math.round(pb.triggerMc), fillMc: Math.round(slippedMc), slipPct });
+        const trade = confirmBuy(pb.token, slippedMc, 'paper_' + Date.now(), 0, log);
+        if (trade) {
+          pb.token.proven = true;
+          netPnlSol -= POSITION_SOL * 0.005;
+          totalFeesSol += POSITION_SOL * 0.005;
+          broadcast({ type: 'buy', mint, symbol: pb.token.symbol, mc: Math.round(slippedMc), jito: pb.token.jitoBundle, slipPct });
+        } else { openCount = Math.max(0, openCount - 1); }
+      }
+    }
+    if (pendingSells.has(mint)) {
+      const ps = pendingSells.get(mint);
+      ps.ticksLeft--;
+      if (ps.ticksLeft <= 0) {
+        pendingSells.delete(mint);
+        const slippedExitMc = mc;
+        const slipPct = ((slippedExitMc - ps.triggerExitMc) / ps.triggerExitMc * 100).toFixed(2);
+        log('SLIPPAGE_SELL', ps.token.symbol, mint, { triggerExitMc: Math.round(ps.triggerExitMc), fillExitMc: Math.round(slippedExitMc), slipPct, reason: ps.reason });
+        openCount = Math.max(0, openCount - 1);
+        const pnlRaw = (slippedExitMc - ps.trade.entryMc) / ps.trade.entryMc * 100;
+        const pnl = pnlRaw - 1;
+        if (pnl > 0) { totalWins++; netPnlSol += POSITION_SOL * (pnl / 100); }
+        else          { totalLosses++; netPnlSol += POSITION_SOL * (pnl / 100); }
+        netPnlSol -= POSITION_SOL * 0.005;
+        totalFeesSol += POSITION_SOL * 0.005;
+        broadcast({ type: 'sell', mint, symbol: ps.token.symbol, pnl: pnl.toFixed(2), reason: ps.reason, exitMc: Math.round(slippedExitMc), slipPct });
+      }
+    }
+
     // Feed tick to algo
     const event = onTick(token, mc, Date.now(), isBuy, sol, openCount, false, log);
     await handleEvent(event);
@@ -716,6 +760,7 @@ function saveSnapshot() {
         maxEarlyBuySol: t.maxEarlyBuySol,
         resolvedBuyerCount: t.resolvedBuyerCount,
         prevMcSol: t.prevMcSol,
+        proven: t.proven || false,
       };
     }
     fs.writeFileSync(SNAPSHOT_FILE, JSON.stringify(regSnap));
@@ -760,6 +805,7 @@ function loadSnapshot() {
           maxEarlyBuySol: snap.maxEarlyBuySol || 0,
           resolvedBuyerCount: snap.resolvedBuyerCount || 0,
           prevMcSol: snap.prevMcSol || 0,
+          proven: snap.proven || false,
         });
 
         // Force-close any active trades from previous session
@@ -990,7 +1036,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '2.1.0',
+    version:    '2.2.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,
@@ -1061,6 +1107,95 @@ app.get('/api/diag', (_req, res) => {
   res.json({
     note: 'use /api/stats for state info, /api/nursery for nursery',
     ppMsgLog: global._ppMsgLog || [],
+  });
+});
+
+app.get('/api/audit', (_req, res) => {
+  const tokens = [...registry.values()];
+  const now = Date.now();
+
+  const armedAudit = [];
+  const blockedAudit = [];
+  const staleReport = [];
+  const tradeGateCheck = [];
+
+  for (const t of tokens) {
+    const staleSec = t.lastTickTs ? Math.round((now - t.lastTickTs) / 1000) : -1;
+
+    if (staleSec > 90 && t.state !== 'BLACKLISTED') {
+      staleReport.push({ mint: t.mint, symbol: t.symbol, state: t.state, staleSec });
+    }
+
+    // For ARMED tokens: verify all 9 gates still pass
+    if (t.state === 'ARMED') {
+      const gateResult = runEntryGates(t, true, 0.25, t.currentMc, openCount, () => {});
+      armedAudit.push({
+        mint: t.mint, symbol: t.symbol,
+        mc: Math.round(t.currentMc),
+        floor: Math.round(t.sessionLow < Infinity ? t.sessionLow : 0),
+        ath: Math.round(t.sessionHigh),
+        allGatesPass: gateResult.pass,
+        failedGate: gateResult.pass ? null : gateResult.gate,
+        failReason: gateResult.pass ? null : gateResult.reason,
+        floorTouches: t.floorTouches,
+        histFloorTouches: t.historyFloorTouches,
+        confirmedFloorTouches: t.confirmedFloorTouches,
+        buyers: Math.max(t.uniqueBuyers?.size ?? 0, t.resolvedBuyerCount ?? 0),
+        proven: t.proven || false,
+      });
+    }
+
+    // For INDEXED/FLOORED: which gate is blocking?
+    if (t.state === 'INDEXED' || t.state === 'FLOORED') {
+      const floorResult = floorGate(t);
+      const floor = t.sessionLow < Infinity ? t.sessionLow : 0;
+      const aboveFloor = floor > 0 ? (t.currentMc - floor) / floor : 0;
+      const hasRealPump = t.sessionHigh > floor * 1.50;
+      blockedAudit.push({
+        mint: t.mint, symbol: t.symbol, state: t.state,
+        mc: Math.round(t.currentMc),
+        floor: Math.round(floor),
+        ath: Math.round(t.sessionHigh),
+        floorGatePass: floorResult.pass,
+        floorGateReason: floorResult.reason,
+        aboveFloorPct: +(aboveFloor * 100).toFixed(1),
+        hasRealPump,
+        floorTouches: Math.max(t.floorTouches || 0, t.historyFloorTouches || 0, t.confirmedFloorTouches || 0),
+        histLoaded: t.historyLoaded,
+        liveTrades: t.liveTrades || 0,
+        jitoBundle: t.jitoBundle,
+      });
+    }
+
+    // For tokens with closed trades: verify exit gates
+    for (const trade of (t.closedTrades || [])) {
+      tradeGateCheck.push({
+        mint: t.mint, symbol: t.symbol,
+        tradeId: trade.id,
+        entryMc: Math.round(trade.entryMc),
+        exitMc: Math.round(trade.exitMc),
+        pnlPct: +trade.pnlPct?.toFixed(2),
+        reason: trade.reason,
+        holdSec: +trade.holdSec?.toFixed(1),
+        tokenFloor: Math.round(t.sessionLow < Infinity ? t.sessionLow : 0),
+        tokenAth: Math.round(t.sessionHigh),
+      });
+    }
+  }
+
+  res.json({
+    ts: new Date().toISOString(),
+    registrySize: tokens.length,
+    staleCount: staleReport.length,
+    armedCount: armedAudit.length,
+    blockedCount: blockedAudit.length,
+    tradeCount: tradeGateCheck.length,
+    staleReport: staleReport.slice(0, 50),
+    armedAudit,
+    blockedAudit: blockedAudit.slice(0, 50),
+    tradeGateCheck,
+    pendingBuys: pendingBuys.size,
+    pendingSells: pendingSells.size,
   });
 });
 
@@ -1153,6 +1288,7 @@ setInterval(() => {
   let pruned = 0;
   for (const [mint, token] of registry) {
     if ([STATE.HOLDING, STATE.EXIT_UNLOCKED, STATE.BUYING].includes(token.state)) continue;
+    if (token.proven) continue;  // never prune proven tokens
     const lastTick = token.lastTickTs || token.createdAt || 0;
     if (now - lastTick > STALE_MS) {
       registry.delete(mint);
