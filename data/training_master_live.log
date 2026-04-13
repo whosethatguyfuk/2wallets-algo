@@ -22,3 +22,33 @@
   FLOORED & READY: Camila  MC=$15154 floor=$12444 aboveFloor=21.8%
   FLOORED & READY: ALPHA MC=$4368 floor=$4368 aboveFloor=0%
   FLOORED & READY: CrazyFrog MC=$15289 floor=$15289 aboveFloor=0%
+[2026-04-13 13:06:16] Session 1 | Check #2 | 54min remaining
+[2026-04-13 13:06:16] [S1-CHECK2] Taking state snapshot...
+  Version: 2.4.0
+  Registry: ? | Nursery: 62 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 0 | WR: 0%
+  States: {}
+  Blocked→Armed pipeline: 34 tokens blocked | 0 armed
+  FLOORED & READY: Rudi MC=$9006 floor=$7387 aboveFloor=21.9%
+  FLOORED & READY: Camila  MC=$11934 floor=$10881 aboveFloor=9.7%
+  FLOORED & READY: ALPHA MC=$4374 floor=$4368 aboveFloor=0.1%
+  FLOORED & READY: CrazyFrog MC=$16820 floor=$14940 aboveFloor=12.6%
+  FLOORED & READY: PENGUIN MC=$10734 floor=$7509 aboveFloor=43%
+  FLOORED & READY: Bunny  MC=$4317 floor=$4314 aboveFloor=0.1%
+  FLOORED & READY: BULLINA MC=$16549 floor=$13366 aboveFloor=23.8%
+[2026-04-13 13:11:17] Session 1 | Check #3 | 49min remaining
+[2026-04-13 13:11:17] [S1-CHECK3] Taking state snapshot...
+  Version: 2.4.1
+  Registry: ? | Nursery: 64 | Born: ?
+  Armed: ? | Open: ? | Closed: ?
+  PnL: ? SOL | Trades: 0 | WR: 0%
+  States: {}
+  Blocked→Armed pipeline: 5 tokens blocked | 4 armed
+  !! GATE VIOLATION: virgin - HISTORY
+  !! GATE VIOLATION: BULLINA - HISTORY
+  !! GATE VIOLATION: Together - HISTORY
+  !! GATE VIOLATION: 💋 - HISTORY
+  FLOORED & READY: COW MC=$15407 floor=$15407 aboveFloor=0%
+  FLOORED & READY: bel MC=$7085 floor=$7085 aboveFloor=0%
+  FLOORED & READY: Psyop MC=$18210 floor=$16772 aboveFloor=8.6%

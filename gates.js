@@ -32,6 +32,10 @@ const pct  = (a, b)          => ((a - b) / b * 100).toFixed(1) + '%';
 export function historyGate(token) {
   if (!token.historyLoaded)
     return fail(`history not loaded yet`);
+  if (token.isNurseryGrad)
+    return pass(`nursery grad — complete data from birth`);
+  if ((token.floorTouches || 0) >= 5)
+    return pass(`${token.floorTouches} floor touches — data quality proven`);
   const total = (token.historyTrades || 0) + (token.liveTrades || 0);
   if (total < HISTORY_MIN_TRADES)
     return fail(`only ${total} total trades (hist:${token.historyTrades} live:${token.liveTrades||0}), need ${HISTORY_MIN_TRADES}`);
