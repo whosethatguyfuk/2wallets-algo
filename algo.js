@@ -23,7 +23,7 @@
 import { STATE,
          ARM_TIMEOUT_SECS, TRADE_FEE_PCT, POSITION_SOL,
          MAX_TRADES_PER_TOKEN, FLOOR_TOUCH_PCT,
-         FLOOR_ARM_ZONE_PCT,
+         FLOOR_ARM_ZONE_PCT, ARM_MIN_ATH_MULT,
          ENTRY_MC_MIN, ROUND2_PUMP_MULT,
          JITO_ROUND2_MIN_ATH, HISTORY_MIN_TRADES,
          REENTRY_COOLDOWN_SECS } from './rules.js';
@@ -212,7 +212,7 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     const floor      = token.sessionLow;
     const aboveFloor = (mc - floor) / floor;
     const isProven   = (token.winCount || 0) >= 1;
-    const hasRealPump = isProven || token.sessionHigh > floor * 1.30;
+    const hasRealPump = isProven || token.sessionHigh >= floor * ARM_MIN_ATH_MULT;
 
     if (token.jitoBundle) {
       const round2Ready = token.sessionHigh > floor * ROUND2_PUMP_MULT;
@@ -365,8 +365,8 @@ function sellTranche(token, mc, now, exitResult, log) {
     mult: +(mc / trade.entryMc).toFixed(2),
   });
 
-  // If all 3 tranches sold, close the trade
-  if (trade.tranchesSold >= 3 || trade.remainingSol <= 0.001) {
+  // If all 4 tranches sold, close the trade
+  if (trade.tranchesSold >= 4 || trade.remainingSol <= 0.001) {
     return closeTradeFull(token, mc, now, 'DCA_COMPLETE', log);
   }
 

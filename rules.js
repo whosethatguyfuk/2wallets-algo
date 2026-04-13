@@ -33,9 +33,10 @@ export const QUALITY_MC_THRESHOLD = 5_000;     // above this MC, large buys are 
 export const HISTORY_MIN_TRADES   = 10;       // minimum trades needed to establish floor
 
 // ── Floor detection ─────────────────────────────────────────────
-export const FLOOR_ARM_ZONE_PCT   = 0.15;     // arm when within 15% above session low (tightened)
+export const FLOOR_ARM_ZONE_PCT   = 0.08;     // arm when within 8% above session low (tight entry)
 export const FLOOR_MIN_TOUCHES    = 2;        // floor must have been tested 2+ times
 export const FLOOR_TOUCH_PCT      = 0.06;     // ±6% = "touching the same level"
+export const ARM_MIN_ATH_MULT     = 2.0;      // token ATH must be ≥ 2x floor to prove it can pump
 
 // ── Arm → Catalyst ──────────────────────────────────────────────
 export const CATALYST_MIN_SOL     = 0.20;     // minimum SOL buy to trigger entry
@@ -46,13 +47,15 @@ export const POSITION_SOL         = Number(process.env.POSITION_SOL) || 0.2;
 export const MAX_CONCURRENT       = 5;
 
 // ── DCA Exit Strategy ───────────────────────────────────────────
-// Sell in 3 tranches as price rises. Hold for the move, not the scalp.
-export const DCA_TRANCHE_1_MULT   = 2.0;     // sell 33% at 2x entry
-export const DCA_TRANCHE_2_MULT   = 2.5;     // sell 33% at 2.5x entry
-export const DCA_TRANCHE_3_MULT   = 3.0;     // sell 34% at 3x entry
-export const DCA_TRANCHE_1_PCT    = 0.33;    // 33% of position
-export const DCA_TRANCHE_2_PCT    = 0.33;    // 33% of position
-export const DCA_TRANCHE_3_PCT    = 0.34;    // remaining 34%
+// Sell in 4 tranches. Early T0 captures partial winners before they dump back.
+export const DCA_TRANCHE_0_MULT   = 1.5;     // sell 20% at 1.5x entry (early lock-in)
+export const DCA_TRANCHE_1_MULT   = 2.0;     // sell 25% at 2x entry
+export const DCA_TRANCHE_2_MULT   = 2.5;     // sell 25% at 2.5x entry
+export const DCA_TRANCHE_3_MULT   = 3.0;     // sell 30% at 3x entry
+export const DCA_TRANCHE_0_PCT    = 0.20;    // 20% of position
+export const DCA_TRANCHE_1_PCT    = 0.25;    // 25% of position
+export const DCA_TRANCHE_2_PCT    = 0.25;    // 25% of position
+export const DCA_TRANCHE_3_PCT    = 0.30;    // remaining 30%
 
 // ── Floor break stop ────────────────────────────────────────────
 export const FLOOR_BREAK_PCT      = 0.10;    // sell 100% if price drops 10% below entry floor

@@ -17,7 +17,7 @@ import {
   CATALYST_MIN_SOL,
   MAX_CONCURRENT, MAX_TRADES_PER_TOKEN,
   REENTRY_MAX_ABOVE_EXIT, REENTRY_COOLDOWN_SECS,
-  DCA_TRANCHE_1_MULT, DCA_TRANCHE_2_MULT, DCA_TRANCHE_3_MULT,
+  DCA_TRANCHE_0_MULT, DCA_TRANCHE_1_MULT, DCA_TRANCHE_2_MULT, DCA_TRANCHE_3_MULT,
   FLOOR_BREAK_PCT, MAX_HOLD_SECS, BOND_MC_SELL,
   MAYHEM_AGENT_WALLET, STATE,
 } from './rules.js';
@@ -151,18 +151,20 @@ export function catalystGate(token, isBuy, solAmount, currentMc) {
 
 /**
  * Checks if a DCA tranche should be sold.
- * Returns { sell: boolean, tranche: number, reason: string, pct: number }
+ * 4 tranches: T0 at 1.5x (20%), T1 at 2x (25%), T2 at 2.5x (25%), T3 at 3x (30%)
  */
 export function dcaExitGate(trade, currentMc) {
   const mult = currentMc / trade.entryMc;
   const soldTranches = trade.tranchesSold || 0;
 
-  if (soldTranches === 0 && mult >= DCA_TRANCHE_1_MULT)
-    return { sell: true, tranche: 1, pct: 0.33, reason: `DCA_T1`, detail: `${mult.toFixed(2)}x (≥${DCA_TRANCHE_1_MULT}x)` };
-  if (soldTranches === 1 && mult >= DCA_TRANCHE_2_MULT)
-    return { sell: true, tranche: 2, pct: 0.33, reason: `DCA_T2`, detail: `${mult.toFixed(2)}x (≥${DCA_TRANCHE_2_MULT}x)` };
-  if (soldTranches === 2 && mult >= DCA_TRANCHE_3_MULT)
-    return { sell: true, tranche: 3, pct: 0.34, reason: `DCA_T3`, detail: `${mult.toFixed(2)}x (≥${DCA_TRANCHE_3_MULT}x)` };
+  if (soldTranches === 0 && mult >= DCA_TRANCHE_0_MULT)
+    return { sell: true, tranche: 1, pct: 0.20, reason: `DCA_T0`, detail: `${mult.toFixed(2)}x (≥${DCA_TRANCHE_0_MULT}x)` };
+  if (soldTranches === 1 && mult >= DCA_TRANCHE_1_MULT)
+    return { sell: true, tranche: 2, pct: 0.25, reason: `DCA_T1`, detail: `${mult.toFixed(2)}x (≥${DCA_TRANCHE_1_MULT}x)` };
+  if (soldTranches === 2 && mult >= DCA_TRANCHE_2_MULT)
+    return { sell: true, tranche: 3, pct: 0.25, reason: `DCA_T2`, detail: `${mult.toFixed(2)}x (≥${DCA_TRANCHE_2_MULT}x)` };
+  if (soldTranches === 3 && mult >= DCA_TRANCHE_3_MULT)
+    return { sell: true, tranche: 4, pct: 0.30, reason: `DCA_T3`, detail: `${mult.toFixed(2)}x (≥${DCA_TRANCHE_3_MULT}x)` };
 
   return { sell: false };
 }

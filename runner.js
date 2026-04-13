@@ -1119,7 +1119,7 @@ sse.onmessage=(e)=>{
     let cls='',txt='';
     if(d.type==='buy'){cls='sse-buy';txt='BUY  '+d.symbol+' at $'+fmtMc(d.mc)+(d.jito?' [JITO R2]':'')}
     if(d.type==='dca_sell'){cls='sse-buy';txt='DCA T'+d.tranche+' '+d.symbol+' '+d.pct+'% at $'+fmtMc(d.mc)+' ('+d.mult+'x) → '+d.remaining+' SOL left'}
-    if(d.type==='sell'){cls='sse-sell';txt='EXIT '+d.symbol+' → '+(d.pnl||'?')+'% ('+d.reason+') ['+(d.tranchesSold||0)+'/3 DCA]'}
+    if(d.type==='sell'){cls='sse-sell';txt='EXIT '+d.symbol+' → '+(d.pnl||'?')+'% ('+d.reason+') ['+(d.tranchesSold||0)+'/4 DCA]'}
     if(d.type==='arm'){cls='sse-arm';txt='ARM  '+d.symbol+' at $'+fmtMc(d.mc)}
     if(d.type==='disarm'){cls='sse-disarm';txt='DISARM '+d.symbol}
     if(txt){
@@ -1165,7 +1165,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '3.0.0',
+    version:    '3.1.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,
