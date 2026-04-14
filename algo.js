@@ -1,20 +1,10 @@
 /**
- * algo.js — STATE MACHINE ENGINE  (v3.3 — dual mode: QUICK + HOLD)
+ * algo.js — STATE MACHINE ENGINE  (v3.4 — strong floors only)
  *
- * This file owns the state machine. It does NOT:
- *   - Connect to any WebSocket
- *   - Make any HTTP requests
- *   - Render any UI
- *
- * It ONLY:
- *   - Receives ticks from the runner
- *   - Runs gates in order
- *   - Transitions token state
- *   - Emits trade events back to the runner
- *
- * v3.3 — Dual mode:
- *   QUICK: new/weak tokens → seller exit, 4% stop, 15% TP
- *   HOLD:  strong/ranged tokens → bid floor, DCA sell for 2-3x
+ * Single mode: only trade tokens with proven floor bounce history.
+ *   Entry: bid the floor at 3%, any buy triggers.
+ *   Exit: rejection (price < entry), DCA sell for 1.5-3x, 6% hard stop.
+ *   Downtrend protection: 2 consecutive stops → extended cooldown.
  */
 
 import { STATE,
@@ -23,9 +13,7 @@ import { STATE,
          FLOOR_ARM_ZONE_PCT, ARM_MIN_ATH_MULT,
          ENTRY_MC_MIN, ROUND2_PUMP_MULT,
          JITO_ROUND2_MIN_ATH, HISTORY_MIN_TRADES,
-         REENTRY_COOLDOWN_SECS,
-         STRONG_MIN_FLOOR_TOUCHES, STRONG_MIN_ATH_MULT, STRONG_MIN_TICKS,
-         HOLD_MAX_HOLD_SECS, QUICK_MAX_HOLD_SECS } from './rules.js';
+         REENTRY_COOLDOWN_SECS, CONSECUTIVE_STOP_LIMIT } from './rules.js';
 
 import { runEntryGates, runExitGates, floorGate } from './gates.js';
 
@@ -58,6 +46,7 @@ export function makeToken(mint, symbol, name, category) {
 
     floorMc:         null,
     floorTouches:    0,
+    bounceCount:     0,       // how many times price touched floor then recovered ≥15%
 
     armedAt:         0,
     isNurseryGrad:   false,
@@ -69,6 +58,7 @@ export function makeToken(mint, symbol, name, category) {
     blacklistedUntil:0,
     tradeCount:      0,
     winCount:        0,
+    consecutiveStops:0,       // consecutive stop/rejection exits without a win
     closedTrades:    [],
   };
 }
@@ -84,7 +74,7 @@ function transition(token, newState, reason, log) {
   });
 }
 
-// ── Price structure update ───────────────────────────────────────
+// ── Price structure update + bounce detection ────────────────────
 export function updatePrice(token, mc, ts, isBuy, sol) {
   token.mcHistory.push({ mc, ts, isBuy, sol });
   const cutoff = ts - 300_000;
@@ -109,6 +99,36 @@ export function updatePrice(token, mc, ts, isBuy, sol) {
       h.mc >= token.sessionLow * (1 - FLOOR_TOUCH_PCT)
     ).length;
   }
+
+  // Bounce detection: track touch → recovery cycles
+  // A bounce = price was in floor zone, then recovered to ≥1.15x floor
+  updateBounceCount(token);
+}
+
+function updateBounceCount(token) {
+  const floor = token.sessionLow;
+  if (!floor || floor <= 0 || floor === Infinity) return;
+
+  const hist = token.mcHistory;
+  if (hist.length < 5) return;
+
+  const floorZoneHigh = floor * (1 + FLOOR_TOUCH_PCT);
+  const recoveryTarget = floor * 1.15;
+
+  let bounces = 0;
+  let inFloorZone = false;
+
+  for (const h of hist) {
+    if (h.mc <= floorZoneHigh && h.mc >= floor * (1 - FLOOR_TOUCH_PCT)) {
+      inFloorZone = true;
+    } else if (inFloorZone && h.mc >= recoveryTarget) {
+      bounces++;
+      inFloorZone = false;
+    }
+  }
+
+  // Also count historical bounces from Helius data
+  token.bounceCount = Math.max(bounces, token.historyBounceCount || 0);
 }
 
 // ── Jito bundle price reset ─────────────────────────────────────
@@ -121,6 +141,8 @@ export function applyJitoBundleReset(token, log) {
   token.floorTouches = 0;
   token.historyFloorTouches = 0;
   token.confirmedFloorTouches = 0;
+  token.bounceCount = 0;
+  token.historyBounceCount = 0;
   log('JITO_RESET', token.symbol, token.mint, {
     bundlePeak: Math.round(token.bundlePeakMc),
     msg: 'price reset for round-2 organic floor detection',
@@ -146,7 +168,7 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
     }
   }
 
-  // ── IN TRADE: manage DCA exits ─────────────────────────────────
+  // ── IN TRADE: manage exits ─────────────────────────────────────
   if (token.state === STATE.HOLDING || token.state === STATE.EXIT_UNLOCKED) {
     const trade = token.activeTrade;
     if (!trade) return null;
@@ -227,7 +249,7 @@ export function onTick(token, mc, ts, isBuy, sol, openCount, isLaser, log) {
       token.armedAt = nowSec;
       token.confirmedFloorTouches = Math.max(token.historyFloorTouches || 0, token.floorTouches || 0);
       const r2 = token.jitoBundle ? ' [ROUND-2]' : '';
-      transition(token, STATE.ARMED, `arm zone: ${(aboveFloor*100).toFixed(1)}% above $${floor.toFixed(0)}${r2}`, log);
+      transition(token, STATE.ARMED, `arm zone: ${(aboveFloor*100).toFixed(1)}% above $${floor.toFixed(0)} (bounces:${token.bounceCount})${r2}`, log);
       return { type: 'ARM', token };
     }
 
@@ -294,24 +316,11 @@ export function confirmBuy(token, entryMc, buySignature, tokensReceived, log) {
     return null;
   }
 
-  const now = Date.now();
-
-  // ── Classify trade mode: QUICK vs HOLD ──────────────────────
+  const now   = Date.now();
   const floor = token.sessionLow || entryMc;
-  const ath   = token.sessionHigh || 0;
-  const athFloorRatio = floor > 0 ? ath / floor : 0;
-  const touches = Math.max(token.floorTouches || 0, token.historyFloorTouches || 0, token.confirmedFloorTouches || 0);
-  const ticks   = (token.mcHistory || []).length;
-
-  const isStrong = touches >= STRONG_MIN_FLOOR_TOUCHES
-                && athFloorRatio >= STRONG_MIN_ATH_MULT
-                && ticks >= STRONG_MIN_TICKS;
-
-  const mode = isStrong ? 'HOLD' : 'QUICK';
 
   token.activeTrade = {
     id:            `${token.mint.slice(0,6)}_${token.tradeCount + 1}`,
-    mode,
     entryMc,
     entryTs:       now,
     entryFloor:    floor,
@@ -333,14 +342,12 @@ export function confirmBuy(token, entryMc, buySignature, tokensReceived, log) {
 
   token.tradeCount++;
   transition(token, STATE.HOLDING,
-    `[${mode}] buy at $${entryMc.toFixed(0)} (floor $${floor.toFixed(0)}, ath/floor=${athFloorRatio.toFixed(1)}x, touches=${touches})`, log);
+    `buy at $${entryMc.toFixed(0)} (floor $${floor.toFixed(0)}, bounces=${token.bounceCount})`, log);
   log('TRADE_OPEN', token.symbol, token.mint, {
-    mode,
     entryMc: Math.round(entryMc),
     entryFloor: Math.round(floor),
-    athFloorRatio: +athFloorRatio.toFixed(1),
-    touches,
-    ticks,
+    bounceCount: token.bounceCount,
+    consecutiveStops: token.consecutiveStops,
     sig: buySignature?.slice(0,12),
     tradeId: token.activeTrade.id,
   });
@@ -383,12 +390,10 @@ function sellTranche(token, mc, now, exitResult, log) {
     mult: +(mc / trade.entryMc).toFixed(2),
   });
 
-  // If all 4 tranches sold, close the trade
   if (trade.tranchesSold >= 4 || trade.remainingSol <= 0.001) {
     return closeTradeFull(token, mc, now, 'DCA_COMPLETE', log);
   }
 
-  // Still holding remaining position — emit partial sell event for runner
   return { type: 'PARTIAL_SELL', token, trade, partial };
 }
 
@@ -402,12 +407,10 @@ function closeTradeFull(token, mc, now, reason, log) {
   if (!trade) return null;
   const holdSec = (now - trade.entryTs) / 1000;
 
-  // Calculate blended PnL from partial sells + remaining position
   let totalReturn = 0;
   for (const p of trade.partialSells) {
     totalReturn += p.solSold * (1 + p.pnlPct / 100);
   }
-  // Remaining unsold position exits at current MC
   const remainPnlPct = (mc - trade.entryMc) / trade.entryMc * 100 - (TRADE_FEE_PCT * 100);
   totalReturn += trade.remainingSol * (1 + remainPnlPct / 100);
   const blendedPnl = ((totalReturn / trade.positionSol) - 1) * 100;
@@ -427,29 +430,43 @@ function closeTradeFull(token, mc, now, reason, log) {
   token.activeTrade  = null;
   token.lastExitMc   = mc;
 
-  if (blendedPnl > 0) token.winCount = (token.winCount || 0) + 1;
+  if (blendedPnl > 0) {
+    token.winCount = (token.winCount || 0) + 1;
+    token.consecutiveStops = 0;
+  }
 
-  // Token health check — prevent overtrading on losers
+  // ── Downtrend protection ────────────────────────────────────
+  const isStopExit = ['STOP_LOSS', 'REJECTION'].includes(reason);
+  if (isStopExit && blendedPnl <= 0) {
+    token.consecutiveStops = (token.consecutiveStops || 0) + 1;
+  }
+
+  // ── Token health / cooldown ─────────────────────────────────
   const totalTrades = token.closedTrades.length;
   const totalWins   = token.closedTrades.filter(t => t.pnlPct > 0).length;
   const tokenWR     = totalTrades > 0 ? totalWins / totalTrades : 1;
 
-  if (totalTrades >= 4 && tokenWR < 0.25) {
+  if (token.consecutiveStops >= CONSECUTIVE_STOP_LIMIT) {
+    token.cooldownUntil = now / 1000 + 600;
+    log('DOWNTREND_DETECTED', token.symbol, token.mint, {
+      consecutiveStops: token.consecutiveStops,
+      action: 'cooldown 10min — token is in downtrend',
+    });
+  } else if (totalTrades >= 4 && tokenWR < 0.25) {
     token.cooldownUntil = now / 1000 + 600;
     log('TOKEN_SICK', token.symbol, token.mint, {
       wr: +(tokenWR * 100).toFixed(0), trades: totalTrades, wins: totalWins,
       action: 'cooldown 10min',
     });
-  } else if (reason === 'SELLER_EXIT') {
-    token.cooldownUntil = now / 1000 + 30;   // fast re-arm — floor might hold next time
-  } else if (reason === 'QUICK_STOP' || reason === 'HOLD_STOP' || reason === 'STOP_LOSS') {
+  } else if (reason === 'REJECTION') {
+    token.cooldownUntil = now / 1000 + 60;
+  } else if (reason === 'STOP_LOSS') {
     token.cooldownUntil = now / 1000 + 120;
   } else {
     token.cooldownUntil = now / 1000 + REENTRY_COOLDOWN_SECS;
   }
 
-  const modeTag = trade.mode || '?';
-  transition(token, STATE.CLOSED, `[${modeTag}] ${reason} at $${mc.toFixed(0)} (${blendedPnl > 0 ? '+' : ''}${blendedPnl.toFixed(1)}%) [${trade.tranchesSold}T sold]`, log);
+  transition(token, STATE.CLOSED, `${reason} at $${mc.toFixed(0)} (${blendedPnl > 0 ? '+' : ''}${blendedPnl.toFixed(1)}%) [${trade.tranchesSold}T sold]`, log);
 
   log('TRADE_CLOSE', token.symbol, token.mint, {
     tradeId:       record.id,
@@ -461,6 +478,7 @@ function closeTradeFull(token, mc, now, reason, log) {
     tranchesSold:  trade.tranchesSold,
     partialSells:  trade.partialSells.length,
     peakMult:      +(trade.peakMc / trade.entryMc).toFixed(2),
+    consecutiveStops: token.consecutiveStops,
   });
 
   return { type: 'CLOSE_TRADE', token, trade: record, reason, exitMc: mc };

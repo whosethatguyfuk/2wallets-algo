@@ -34,9 +34,10 @@ export const HISTORY_MIN_TRADES   = 10;       // minimum trades needed to establ
 
 // ── Floor detection ─────────────────────────────────────────────
 export const FLOOR_ARM_ZONE_PCT   = 0.03;     // arm when within 3% above session low (surgical)
-export const FLOOR_MIN_TOUCHES    = 2;        // floor must have been tested 2+ times
+export const FLOOR_MIN_TOUCHES    = 3;        // floor must have been tested 3+ times (was 2)
 export const FLOOR_TOUCH_PCT      = 0.06;     // ±6% = "touching the same level"
-export const ARM_MIN_ATH_MULT     = 1.3;      // lowered — let more tokens arm, classify QUICK vs HOLD at entry
+export const ARM_MIN_ATH_MULT     = 2.0;      // ATH must be ≥ 2x floor — proves real bounce strength
+export const FLOOR_MIN_BOUNCES    = 2;        // floor must have 2+ bounces (touch → recovery to ≥1.15x floor)
 
 // ── Arm → Entry ─────────────────────────────────────────────────
 export const CATALYST_MIN_SOL     = 0;        // no catalyst — any buy at the floor triggers entry
@@ -46,16 +47,7 @@ export const ARM_TIMEOUT_SECS     = 120;      // disarm if no entry in 2 min
 export const POSITION_SOL         = Number(process.env.POSITION_SOL) || 0.2;
 export const MAX_CONCURRENT       = 5;
 
-// ══════════════════════════════════════════════════════════════════
-// DUAL MODE: tokens classified at entry as QUICK or HOLD
-// ══════════════════════════════════════════════════════════════════
-
-// ── HOLD mode thresholds (strong established tokens) ─────────────
-export const STRONG_MIN_FLOOR_TOUCHES = 4;    // floor tested 4+ times
-export const STRONG_MIN_ATH_MULT      = 2.0;  // ATH must be ≥ 2x floor
-export const STRONG_MIN_TICKS         = 50;   // 50+ ticks of data
-
-// ── HOLD mode exits — DCA sell for high multiples ────────────────
+// ── Exit Strategy — single mode: DCA sell for high multiples ────
 export const DCA_TRANCHE_0_MULT   = 1.5;     // sell 20% at 1.5x entry
 export const DCA_TRANCHE_1_MULT   = 2.0;     // sell 25% at 2x entry
 export const DCA_TRANCHE_2_MULT   = 2.5;     // sell 25% at 2.5x entry
@@ -64,21 +56,24 @@ export const DCA_TRANCHE_0_PCT    = 0.20;
 export const DCA_TRANCHE_1_PCT    = 0.25;
 export const DCA_TRANCHE_2_PCT    = 0.25;
 export const DCA_TRANCHE_3_PCT    = 0.30;
-export const HOLD_STOP_PCT        = 0.06;    // 6% stop from entry
-export const HOLD_MAX_HOLD_SECS   = 2700;    // 45 min max
 
-// ── QUICK mode exits — fast scalp, seller exit ───────────────────
-export const QUICK_STOP_PCT       = 0.04;    // 4% stop from entry (tight)
-export const QUICK_TP_PCT         = 0.15;    // 15% take profit (full exit)
-export const QUICK_MAX_HOLD_SECS  = 180;     // 3 min max hold
+// ── Stop loss — exit if price drops below entry ─────────────────
+export const STOP_LOSS_PCT        = 0.06;    // 6% stop from ENTRY price
+export const MAX_HOLD_SECS        = 2700;    // 45 min hard cap
 
-// ── Bond cap (both modes) ────────────────────────────────────────
+// ── Rejection exit — exit if price drops below entry on any tick ─
+export const REJECTION_ENABLED    = true;     // if currentMc < entryMc → sell (floor rejected)
+
+// ── Bond cap ────────────────────────────────────────────────────
 export const BOND_MC_SELL         = 55_000;
+
+// ── Downtrend protection ────────────────────────────────────────
+export const CONSECUTIVE_STOP_LIMIT = 2;      // 2 consecutive stop-outs → sick cooldown
 
 // ── Re-entry rules ──────────────────────────────────────────────
 export const REENTRY_MAX_ABOVE_EXIT = 0.05;
-export const REENTRY_COOLDOWN_SECS  = 60;     // faster re-entry
-export const MAX_TRADES_PER_TOKEN   = 8;      // more trades allowed — quick scalps cycle fast
+export const REENTRY_COOLDOWN_SECS  = 90;
+export const MAX_TRADES_PER_TOKEN   = 5;
 
 // ── Mayhem blacklist ────────────────────────────────────────────
 export const MAYHEM_AGENT_WALLET  = "BwWK17cbHxwWBKZkUYvzxLcNQ1YVyaFezduWbtm2de6s";
