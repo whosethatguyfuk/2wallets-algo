@@ -1,5 +1,5 @@
 /**
- * algo.js — STATE MACHINE ENGINE  (v3.0 — DCA hold strategy)
+ * algo.js — STATE MACHINE ENGINE  (v3.3 — dual mode: QUICK + HOLD)
  *
  * This file owns the state machine. It does NOT:
  *   - Connect to any WebSocket
@@ -12,12 +12,9 @@
  *   - Transitions token state
  *   - Emits trade events back to the runner
  *
- * v3.0 — "Bid the floor, hold for 2-3x, DCA sell out."
- *   Entry logic unchanged. Exit completely reworked:
- *     - DCA tranches at 2x, 2.5x, 3x
- *     - Hard stop on floor break (10% below entry floor)
- *     - Bond cap sell at $55K
- *     - 45 min max hold
+ * v3.3 — Dual mode:
+ *   QUICK: new/weak tokens → seller exit, 4% stop, 15% TP
+ *   HOLD:  strong/ranged tokens → bid floor, DCA sell for 2-3x
  */
 
 import { STATE,
@@ -26,7 +23,9 @@ import { STATE,
          FLOOR_ARM_ZONE_PCT, ARM_MIN_ATH_MULT,
          ENTRY_MC_MIN, ROUND2_PUMP_MULT,
          JITO_ROUND2_MIN_ATH, HISTORY_MIN_TRADES,
-         REENTRY_COOLDOWN_SECS } from './rules.js';
+         REENTRY_COOLDOWN_SECS,
+         STRONG_MIN_FLOOR_TOUCHES, STRONG_MIN_ATH_MULT, STRONG_MIN_TICKS,
+         HOLD_MAX_HOLD_SECS, QUICK_MAX_HOLD_SECS } from './rules.js';
 
 import { runEntryGates, runExitGates, floorGate } from './gates.js';
 
@@ -296,11 +295,26 @@ export function confirmBuy(token, entryMc, buySignature, tokensReceived, log) {
   }
 
   const now = Date.now();
+
+  // ── Classify trade mode: QUICK vs HOLD ──────────────────────
+  const floor = token.sessionLow || entryMc;
+  const ath   = token.sessionHigh || 0;
+  const athFloorRatio = floor > 0 ? ath / floor : 0;
+  const touches = Math.max(token.floorTouches || 0, token.historyFloorTouches || 0, token.confirmedFloorTouches || 0);
+  const ticks   = (token.mcHistory || []).length;
+
+  const isStrong = touches >= STRONG_MIN_FLOOR_TOUCHES
+                && athFloorRatio >= STRONG_MIN_ATH_MULT
+                && ticks >= STRONG_MIN_TICKS;
+
+  const mode = isStrong ? 'HOLD' : 'QUICK';
+
   token.activeTrade = {
     id:            `${token.mint.slice(0,6)}_${token.tradeCount + 1}`,
+    mode,
     entryMc,
     entryTs:       now,
-    entryFloor:    token.sessionLow || entryMc,   // floor at entry — used for floor-break stop
+    entryFloor:    floor,
     peakMc:        entryMc,
     currentMc:     entryMc,
     buySignature,
@@ -310,19 +324,23 @@ export function confirmBuy(token, entryMc, buySignature, tokensReceived, log) {
     totalVol:      0,
     tickCount:     0,
 
-    // DCA tracking
-    tranchesSold:  0,          // 0, 1, 2, or 3
-    soldPct:       0,          // cumulative % sold (0.0 → 1.0)
-    partialSells:  [],         // { tranche, pct, mc, ts, pnlPct }
+    tranchesSold:  0,
+    soldPct:       0,
+    partialSells:  [],
     positionSol:   POSITION_SOL,
     remainingSol:  POSITION_SOL,
   };
 
   token.tradeCount++;
-  transition(token, STATE.HOLDING, `buy confirmed at $${entryMc.toFixed(0)} (floor $${token.activeTrade.entryFloor.toFixed(0)})`, log);
+  transition(token, STATE.HOLDING,
+    `[${mode}] buy at $${entryMc.toFixed(0)} (floor $${floor.toFixed(0)}, ath/floor=${athFloorRatio.toFixed(1)}x, touches=${touches})`, log);
   log('TRADE_OPEN', token.symbol, token.mint, {
+    mode,
     entryMc: Math.round(entryMc),
-    entryFloor: Math.round(token.activeTrade.entryFloor),
+    entryFloor: Math.round(floor),
+    athFloorRatio: +athFloorRatio.toFixed(1),
+    touches,
+    ticks,
     sig: buySignature?.slice(0,12),
     tradeId: token.activeTrade.id,
   });
@@ -422,13 +440,16 @@ function closeTradeFull(token, mc, now, reason, log) {
       wr: +(tokenWR * 100).toFixed(0), trades: totalTrades, wins: totalWins,
       action: 'cooldown 10min',
     });
-  } else if (reason === 'STOP_LOSS') {
+  } else if (reason === 'SELLER_EXIT') {
+    token.cooldownUntil = now / 1000 + 30;   // fast re-arm — floor might hold next time
+  } else if (reason === 'QUICK_STOP' || reason === 'HOLD_STOP' || reason === 'STOP_LOSS') {
     token.cooldownUntil = now / 1000 + 120;
   } else {
     token.cooldownUntil = now / 1000 + REENTRY_COOLDOWN_SECS;
   }
 
-  transition(token, STATE.CLOSED, `${reason} at $${mc.toFixed(0)} (${blendedPnl > 0 ? '+' : ''}${blendedPnl.toFixed(1)}%) [${trade.tranchesSold}/3 tranches sold]`, log);
+  const modeTag = trade.mode || '?';
+  transition(token, STATE.CLOSED, `[${modeTag}] ${reason} at $${mc.toFixed(0)} (${blendedPnl > 0 ? '+' : ''}${blendedPnl.toFixed(1)}%) [${trade.tranchesSold}T sold]`, log);
 
   log('TRADE_CLOSE', token.symbol, token.mint, {
     tradeId:       record.id,

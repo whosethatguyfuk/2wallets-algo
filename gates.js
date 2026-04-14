@@ -5,8 +5,9 @@
  * No side effects. No async. No mutations.
  * Each gate is independently testable.
  *
- * v3.0 — DCA exit strategy. No more SELLER_EXIT / TRAIL / scalp TP.
- * We bid the floor, hold for 2-3x, DCA sell out. Floor break = hard stop.
+ * v3.3 — Dual-mode: QUICK (seller exit) vs HOLD (DCA sell).
+ * QUICK = new/weak tokens → fast in/out, any sell = instant exit.
+ * HOLD  = proven/ranged tokens → bid floor, hold for 2-3x, DCA sell.
  */
 
 import {
@@ -18,7 +19,9 @@ import {
   MAX_CONCURRENT, MAX_TRADES_PER_TOKEN,
   REENTRY_MAX_ABOVE_EXIT, REENTRY_COOLDOWN_SECS,
   DCA_TRANCHE_0_MULT, DCA_TRANCHE_1_MULT, DCA_TRANCHE_2_MULT, DCA_TRANCHE_3_MULT,
-  STOP_LOSS_PCT, MAX_HOLD_SECS, BOND_MC_SELL,
+  HOLD_STOP_PCT, HOLD_MAX_HOLD_SECS,
+  QUICK_STOP_PCT, QUICK_TP_PCT, QUICK_MAX_HOLD_SECS,
+  BOND_MC_SELL,
   MAYHEM_AGENT_WALLET, STATE,
 } from './rules.js';
 
@@ -28,7 +31,7 @@ const fail = (reason)        => ({ pass: false, reason });
 const pct  = (a, b)          => ((a - b) / b * 100).toFixed(1) + '%';
 
 // ═══════════════════════════════════════════════════════════════════
-// ENTRY GATES (mostly unchanged)
+// ENTRY GATES
 // ═══════════════════════════════════════════════════════════════════
 
 export function historyGate(token) {
@@ -145,13 +148,52 @@ export function catalystGate(token, isBuy, solAmount, currentMc) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// NEW EXIT SYSTEM — DCA + Floor Break
+// EXIT GATES — QUICK MODE (new/weak tokens)
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Checks if a DCA tranche should be sold.
- * 4 tranches: T0 at 1.5x (20%), T1 at 2x (25%), T2 at 2.5x (25%), T3 at 3x (30%)
+ * Seller exit: if ANYONE sells while we're holding → instant exit.
+ * The logic: we're testing the floor. Any sell = floor rejected = get out.
  */
+export function sellerExitGate(isBuy) {
+  if (!isBuy)
+    return { exit: true, reason: 'SELLER_EXIT', detail: 'sell tick — floor rejected' };
+  return { exit: false };
+}
+
+/**
+ * Quick stop: 4% below entry price.
+ */
+export function quickStopGate(trade, currentMc) {
+  const stopLevel = trade.entryMc * (1 - QUICK_STOP_PCT);
+  if (currentMc <= stopLevel)
+    return { exit: true, reason: 'QUICK_STOP', detail: `$${currentMc.toFixed(0)} ≤ $${stopLevel.toFixed(0)} (-${(QUICK_STOP_PCT*100)}%)` };
+  return { exit: false };
+}
+
+/**
+ * Quick take profit: 15% above entry.
+ */
+export function quickTpGate(trade, currentMc) {
+  const target = trade.entryMc * (1 + QUICK_TP_PCT);
+  if (currentMc >= target)
+    return { exit: true, reason: 'QUICK_TP', detail: `$${currentMc.toFixed(0)} ≥ $${target.toFixed(0)} (+${(QUICK_TP_PCT*100)}%)` };
+  return { exit: false };
+}
+
+/**
+ * Quick max hold: 3 minutes.
+ */
+export function quickMaxHoldGate(holdSec) {
+  if (holdSec >= QUICK_MAX_HOLD_SECS)
+    return { exit: true, reason: 'QUICK_MAX_HOLD' };
+  return { exit: false };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EXIT GATES — HOLD MODE (proven/strong tokens)
+// ═══════════════════════════════════════════════════════════════════
+
 export function dcaExitGate(trade, currentMc) {
   const mult = currentMc / trade.entryMc;
   const soldTranches = trade.tranchesSold || 0;
@@ -168,31 +210,21 @@ export function dcaExitGate(trade, currentMc) {
   return { sell: false };
 }
 
-/**
- * Hard stop: if price drops 6% below ENTRY PRICE.
- * Measured from where we bought, not from the floor.
- */
-export function stopLossGate(trade, currentMc) {
-  const stopLevel = trade.entryMc * (1 - STOP_LOSS_PCT);
+export function holdStopGate(trade, currentMc) {
+  const stopLevel = trade.entryMc * (1 - HOLD_STOP_PCT);
   if (currentMc <= stopLevel)
-    return { exit: true, reason: 'STOP_LOSS', detail: `$${currentMc.toFixed(0)} ≤ $${stopLevel.toFixed(0)} (entry $${trade.entryMc.toFixed(0)} -${(STOP_LOSS_PCT*100).toFixed(0)}%)` };
+    return { exit: true, reason: 'HOLD_STOP', detail: `$${currentMc.toFixed(0)} ≤ $${stopLevel.toFixed(0)} (-${(HOLD_STOP_PCT*100)}%)` };
   return { exit: false };
 }
 
-/**
- * Bond cap: sell everything if MC approaches bonding curve
- */
 export function bondCapGate(trade, currentMc) {
   if (currentMc >= BOND_MC_SELL)
     return { exit: true, reason: 'BOND_CAP', detail: `MC $${currentMc.toFixed(0)} ≥ $${BOND_MC_SELL}` };
   return { exit: false };
 }
 
-/**
- * Max hold hard cap (45 min)
- */
-export function maxHoldGate(holdSec) {
-  if (holdSec >= MAX_HOLD_SECS)
+export function holdMaxHoldGate(holdSec) {
+  if (holdSec >= HOLD_MAX_HOLD_SECS)
     return { exit: true, reason: 'MAX_HOLD' };
   return { exit: false };
 }
@@ -223,28 +255,74 @@ export function runEntryGates(token, isBuy, solAmount, currentMc, openCount, log
   return { pass: true, gate: 'ALL', reason: 'all 9 gates passed' };
 }
 
-// ── RUN DCA EXIT CHECK ───────────────────────────────────────────
+// ── RUN EXIT GATES — branches on trade.mode ──────────────────────
 export function runExitGates(trade, token, isBuy, solAmount, holdSec, log) {
   const mc = token.currentMc;
 
-  // 1. Stop loss — hard stop, sell everything
-  const sl = stopLossGate(trade, mc);
+  // ──────────────────────────────────────────────────────────────
+  // QUICK MODE: seller exit, tight stop, quick TP, short hold
+  // ──────────────────────────────────────────────────────────────
+  if (trade.mode === 'QUICK') {
+    // 1. Stop loss — 4% hard stop (check first before seller exit)
+    const qs = quickStopGate(trade, mc);
+    if (qs.exit) {
+      log('EXIT_GATE', token.symbol, token.mint, { gate: 'QUICK_STOP', detail: qs.detail, mode: 'QUICK' });
+      return { exit: true, reason: qs.reason, sellAll: true };
+    }
+
+    // 2. Bond cap
+    const bc = bondCapGate(trade, mc);
+    if (bc.exit) {
+      log('EXIT_GATE', token.symbol, token.mint, { gate: 'BOND_CAP', detail: bc.detail, mode: 'QUICK' });
+      return { exit: true, reason: bc.reason, sellAll: true };
+    }
+
+    // 3. Take profit — 15%
+    const tp = quickTpGate(trade, mc);
+    if (tp.exit) {
+      log('EXIT_GATE', token.symbol, token.mint, { gate: 'QUICK_TP', detail: tp.detail, mode: 'QUICK' });
+      return { exit: true, reason: tp.reason, sellAll: true };
+    }
+
+    // 4. Max hold — 3 min
+    const mh = quickMaxHoldGate(holdSec);
+    if (mh.exit) {
+      log('EXIT_GATE', token.symbol, token.mint, { gate: 'QUICK_MAX_HOLD', holdSec: holdSec.toFixed(0), mode: 'QUICK' });
+      return { exit: true, reason: mh.reason, sellAll: true };
+    }
+
+    // 5. Seller exit — any sell tick = floor rejected = get out
+    const se = sellerExitGate(isBuy);
+    if (se.exit) {
+      log('EXIT_GATE', token.symbol, token.mint, { gate: 'SELLER_EXIT', detail: se.detail, mode: 'QUICK' });
+      return { exit: true, reason: se.reason, sellAll: true };
+    }
+
+    return { exit: false };
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // HOLD MODE: DCA sell, stop, bond cap, max hold
+  // ──────────────────────────────────────────────────────────────
+
+  // 1. Stop loss — 6% hard stop
+  const sl = holdStopGate(trade, mc);
   if (sl.exit) {
-    log('EXIT_GATE', token.symbol, token.mint, { gate: 'STOP_LOSS', detail: sl.detail });
+    log('EXIT_GATE', token.symbol, token.mint, { gate: 'HOLD_STOP', detail: sl.detail, mode: 'HOLD' });
     return { exit: true, reason: sl.reason, sellAll: true };
   }
 
   // 2. Bond cap — sell everything near bonding curve
   const bc = bondCapGate(trade, mc);
   if (bc.exit) {
-    log('EXIT_GATE', token.symbol, token.mint, { gate: 'BOND_CAP', detail: bc.detail });
+    log('EXIT_GATE', token.symbol, token.mint, { gate: 'BOND_CAP', detail: bc.detail, mode: 'HOLD' });
     return { exit: true, reason: bc.reason, sellAll: true };
   }
 
-  // 3. Max hold — sell everything
-  const mh = maxHoldGate(holdSec);
+  // 3. Max hold — 45 min
+  const mh = holdMaxHoldGate(holdSec);
   if (mh.exit) {
-    log('EXIT_GATE', token.symbol, token.mint, { gate: 'MAX_HOLD', holdSec: holdSec.toFixed(0) });
+    log('EXIT_GATE', token.symbol, token.mint, { gate: 'MAX_HOLD', holdSec: holdSec.toFixed(0), mode: 'HOLD' });
     return { exit: true, reason: mh.reason, sellAll: true };
   }
 
@@ -252,7 +330,7 @@ export function runExitGates(trade, token, isBuy, solAmount, holdSec, log) {
   const dca = dcaExitGate(trade, mc);
   if (dca.sell) {
     log('EXIT_GATE', token.symbol, token.mint, {
-      gate: dca.reason, tranche: dca.tranche, pct: dca.pct, detail: dca.detail,
+      gate: dca.reason, tranche: dca.tranche, pct: dca.pct, detail: dca.detail, mode: 'HOLD',
     });
     return { exit: true, reason: dca.reason, sellAll: false, tranche: dca.tranche, pct: dca.pct };
   }

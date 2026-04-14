@@ -38,7 +38,7 @@ import { makeToken, onTick, confirmBuy, forceClose, updatePrice, applyJitoBundle
 import { runEntryGates, floorGate } from './gates.js';
 import {
   QUALITY_MC_THRESHOLD, QUALITY_MAX_BUY_SOL,
-  MAYHEM_AGENT_WALLET, STATE, POSITION_SOL, MAX_HOLD_SECS,
+  MAYHEM_AGENT_WALLET, STATE, POSITION_SOL, HOLD_MAX_HOLD_SECS,
   NURSERY_MAX, NURSERY_PURGE_MS, NURSERY_MIN_TRADERS,
   COLD_PROMOTE_MC, JITO_SAME_SLOT_BUYS, JITO_SAME_SLOT_WALLETS,
   MC_DIRECTION_MIN_DELTA, CATALYST_MIN_SOL,
@@ -545,9 +545,10 @@ async function handleEvent(event) {
     const { token, trade, reason, exitMc } = event;
 
     if (!REAL_TRADING && trade) {
-      // Stop losses execute immediately — no slippage delay on exits
-      // (in real trading you'd use a limit order, not wait while price craters)
-      if (reason === 'STOP_LOSS') {
+      // QUICK mode exits + stops execute instantly (no slippage)
+      // In real trading: SELLER_EXIT = instant market sell, stops = limit order
+      const instantReasons = ['SELLER_EXIT', 'QUICK_STOP', 'QUICK_TP', 'QUICK_MAX_HOLD', 'HOLD_STOP', 'STOP_LOSS'];
+      if (instantReasons.includes(reason)) {
         openCount = Math.max(0, openCount - 1);
         const pnl = trade.pnlPct;
         if (pnl > 0) { totalWins++; netPnlSol += POSITION_SOL * (pnl / 100); }
@@ -555,9 +556,10 @@ async function handleEvent(event) {
         totalFeesSol += POSITION_SOL * TRADE_FEE_PCT;
         if (!walletComparisons.has(token.mint)) walletComparisons.set(token.mint, { walletTrades: [], ourTrades: [] });
         walletComparisons.get(token.mint).ourTrades.push({ ts: Date.now(), isBuy: false, sol: POSITION_SOL, mc: Math.round(exitMc), pnl: +pnl.toFixed(2), reason });
-        broadcast({ type: 'sell', mint: token.mint, symbol: token.symbol, pnl: pnl.toFixed(2), reason, exitMc: Math.round(exitMc), tranchesSold: trade?.tranchesSold || 0 });
+        broadcast({ type: 'sell', mint: token.mint, symbol: token.symbol, pnl: pnl.toFixed(2), reason, exitMc: Math.round(exitMc), tranchesSold: trade?.tranchesSold || 0, mode: trade.mode || '?' });
         return;
       }
+      // HOLD mode DCA/bond/maxhold — normal slippage
       const slippageTicks = 1 + Math.floor(Math.random() * 3);
       log('SLIPPAGE_QUEUE_SELL', token.symbol, token.mint, { triggerExitMc: Math.round(exitMc), reason, delayTicks: slippageTicks });
       pendingSells.set(token.mint, { token, trade, reason, triggerExitMc: exitMc, ticksLeft: slippageTicks, queuedAt: Date.now() });
@@ -1178,7 +1180,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '3.2.0',
+    version:    '3.3.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,
@@ -1379,7 +1381,7 @@ app.get('/api/sse', (req, res) => {
 
 // ── Start ────────────────────────────────────────────────────────
 server.listen(PORT, () => {
-  console.log(`\n🐊 2Wallets Algo v3.0 (DCA Hold Strategy) — port ${PORT}`);
+  console.log(`\n🐊 2Wallets Algo v3.3 (QUICK + HOLD dual mode) — port ${PORT}`);
   console.log(`📁 Logging to: ${LOG_FILE}`);
   console.log(`⚡ Real trading: ${REAL_TRADING}`);
   console.log();
@@ -1530,7 +1532,7 @@ function runWatchdog() {
       continue;
     }
 
-    if (holdSec >= MAX_HOLD_SECS) {
+    if (holdSec >= HOLD_MAX_HOLD_SECS) {
       console.log(`🐕 WATCHDOG: ${token.symbol} hit max hold ${holdSec.toFixed(0)}s — killing`);
       watchdogKills++;
       try {
