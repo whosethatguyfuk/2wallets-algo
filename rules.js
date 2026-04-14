@@ -37,7 +37,7 @@ export const FLOOR_ARM_ZONE_PCT   = 0.03;     // arm when within 3% above sessio
 export const FLOOR_MIN_TOUCHES    = 3;        // floor must have been tested 3+ times (was 2)
 export const FLOOR_TOUCH_PCT      = 0.06;     // ±6% = "touching the same level"
 export const ARM_MIN_ATH_MULT     = 2.0;      // ATH must be ≥ 2x floor — proves real bounce strength
-export const FLOOR_MIN_BOUNCES    = 2;        // floor must have 2+ bounces (touch → recovery to ≥1.15x floor)
+export const FLOOR_MIN_BOUNCES    = 1;        // floor must have 1+ bounce (touch → recovery to ≥1.15x floor)
 
 // ── Arm → Entry ─────────────────────────────────────────────────
 export const CATALYST_MIN_SOL     = 0;        // no catalyst — any buy at the floor triggers entry

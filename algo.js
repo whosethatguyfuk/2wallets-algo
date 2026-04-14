@@ -110,25 +110,27 @@ function updateBounceCount(token) {
   if (!floor || floor <= 0 || floor === Infinity) return;
 
   const hist = token.mcHistory;
-  if (hist.length < 5) return;
 
   const floorZoneHigh = floor * (1 + FLOOR_TOUCH_PCT);
   const recoveryTarget = floor * 1.15;
 
-  let bounces = 0;
+  let liveBounces = 0;
   let inFloorZone = false;
 
   for (const h of hist) {
     if (h.mc <= floorZoneHigh && h.mc >= floor * (1 - FLOOR_TOUCH_PCT)) {
       inFloorZone = true;
     } else if (inFloorZone && h.mc >= recoveryTarget) {
-      bounces++;
+      liveBounces++;
       inFloorZone = false;
     }
   }
 
-  // Also count historical bounces from Helius data
-  token.bounceCount = Math.max(bounces, token.historyBounceCount || 0);
+  // If ATH ≥ 2x floor, the token has proven it can pump from floor and return.
+  // That counts as at least 1 bounce even if we didn't observe it in the rolling window.
+  const athBounce = (token.sessionHigh >= floor * ARM_MIN_ATH_MULT) ? 1 : 0;
+
+  token.bounceCount = Math.max(liveBounces, token.historyBounceCount || 0, athBounce);
 }
 
 // ── Jito bundle price reset ─────────────────────────────────────
