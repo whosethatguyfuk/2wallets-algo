@@ -33,14 +33,14 @@ export const QUALITY_MC_THRESHOLD = 5_000;     // above this MC, large buys are 
 export const HISTORY_MIN_TRADES   = 10;       // minimum trades needed to establish floor
 
 // ── Floor detection ─────────────────────────────────────────────
-export const FLOOR_ARM_ZONE_PCT   = 0.08;     // arm when within 8% above session low (tight entry)
+export const FLOOR_ARM_ZONE_PCT   = 0.03;     // arm when within 3% above session low (surgical)
 export const FLOOR_MIN_TOUCHES    = 2;        // floor must have been tested 2+ times
 export const FLOOR_TOUCH_PCT      = 0.06;     // ±6% = "touching the same level"
 export const ARM_MIN_ATH_MULT     = 2.0;      // token ATH must be ≥ 2x floor to prove it can pump
 
-// ── Arm → Catalyst ──────────────────────────────────────────────
-export const CATALYST_MIN_SOL     = 0.20;     // minimum SOL buy to trigger entry
-export const ARM_TIMEOUT_SECS     = 300;      // disarm if no catalyst in 5 min
+// ── Arm → Entry ─────────────────────────────────────────────────
+export const CATALYST_MIN_SOL     = 0;        // no catalyst — any buy at the floor triggers entry
+export const ARM_TIMEOUT_SECS     = 120;      // disarm if no entry in 2 min
 
 // ── Execution ───────────────────────────────────────────────────
 export const POSITION_SOL         = Number(process.env.POSITION_SOL) || 0.2;
@@ -57,9 +57,9 @@ export const DCA_TRANCHE_1_PCT    = 0.25;    // 25% of position
 export const DCA_TRANCHE_2_PCT    = 0.25;    // 25% of position
 export const DCA_TRANCHE_3_PCT    = 0.30;    // remaining 30%
 
-// ── Floor break stop ────────────────────────────────────────────
-export const FLOOR_BREAK_PCT      = 0.10;    // sell 100% if price drops 10% below entry floor
-export const MAX_HOLD_SECS        = 2700;    // 45 min hard cap (was 3 min)
+// ── Stop loss ───────────────────────────────────────────────────
+export const STOP_LOSS_PCT        = 0.06;    // sell 100% if price drops 6% below ENTRY price
+export const MAX_HOLD_SECS        = 2700;    // 45 min hard cap
 
 // ── Bond cap ────────────────────────────────────────────────────
 export const BOND_MC_SELL         = 55_000;   // sell remaining position approaching bonding curve

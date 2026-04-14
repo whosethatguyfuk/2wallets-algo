@@ -18,7 +18,7 @@ import {
   MAX_CONCURRENT, MAX_TRADES_PER_TOKEN,
   REENTRY_MAX_ABOVE_EXIT, REENTRY_COOLDOWN_SECS,
   DCA_TRANCHE_0_MULT, DCA_TRANCHE_1_MULT, DCA_TRANCHE_2_MULT, DCA_TRANCHE_3_MULT,
-  FLOOR_BREAK_PCT, MAX_HOLD_SECS, BOND_MC_SELL,
+  STOP_LOSS_PCT, MAX_HOLD_SECS, BOND_MC_SELL,
   MAYHEM_AGENT_WALLET, STATE,
 } from './rules.js';
 
@@ -141,8 +141,7 @@ export function sellPressureGate(token) {
 
 export function catalystGate(token, isBuy, solAmount, currentMc) {
   if (!isBuy) return fail(`not a buy`);
-  if (solAmount < CATALYST_MIN_SOL) return fail(`${solAmount.toFixed(3)} SOL < ${CATALYST_MIN_SOL}`);
-  return pass(`catalyst: ${solAmount.toFixed(3)} SOL at $${currentMc.toFixed(0)}`);
+  return pass(`buy at floor: ${solAmount.toFixed(3)} SOL at $${currentMc.toFixed(0)}`);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -170,14 +169,13 @@ export function dcaExitGate(trade, currentMc) {
 }
 
 /**
- * Floor break hard stop: if price drops 10% below the floor at time of entry.
- * The floor = token.entryFloor (the sessionLow when we entered).
+ * Hard stop: if price drops 6% below ENTRY PRICE.
+ * Measured from where we bought, not from the floor.
  */
-export function floorBreakGate(trade, currentMc) {
-  const entryFloor = trade.entryFloor || trade.entryMc;
-  const breakLevel = entryFloor * (1 - FLOOR_BREAK_PCT);
-  if (currentMc <= breakLevel)
-    return { exit: true, reason: 'FLOOR_BREAK', detail: `$${currentMc.toFixed(0)} ≤ $${breakLevel.toFixed(0)} (floor $${entryFloor.toFixed(0)} -${(FLOOR_BREAK_PCT*100).toFixed(0)}%)` };
+export function stopLossGate(trade, currentMc) {
+  const stopLevel = trade.entryMc * (1 - STOP_LOSS_PCT);
+  if (currentMc <= stopLevel)
+    return { exit: true, reason: 'STOP_LOSS', detail: `$${currentMc.toFixed(0)} ≤ $${stopLevel.toFixed(0)} (entry $${trade.entryMc.toFixed(0)} -${(STOP_LOSS_PCT*100).toFixed(0)}%)` };
   return { exit: false };
 }
 
@@ -229,11 +227,11 @@ export function runEntryGates(token, isBuy, solAmount, currentMc, openCount, log
 export function runExitGates(trade, token, isBuy, solAmount, holdSec, log) {
   const mc = token.currentMc;
 
-  // 1. Floor break — hard stop, sell everything
-  const fb = floorBreakGate(trade, mc);
-  if (fb.exit) {
-    log('EXIT_GATE', token.symbol, token.mint, { gate: 'FLOOR_BREAK', detail: fb.detail });
-    return { exit: true, reason: fb.reason, sellAll: true };
+  // 1. Stop loss — hard stop, sell everything
+  const sl = stopLossGate(trade, mc);
+  if (sl.exit) {
+    log('EXIT_GATE', token.symbol, token.mint, { gate: 'STOP_LOSS', detail: sl.detail });
+    return { exit: true, reason: sl.reason, sellAll: true };
   }
 
   // 2. Bond cap — sell everything near bonding curve

@@ -422,8 +422,8 @@ function closeTradeFull(token, mc, now, reason, log) {
       wr: +(tokenWR * 100).toFixed(0), trades: totalTrades, wins: totalWins,
       action: 'cooldown 10min',
     });
-  } else if (reason === 'FLOOR_BREAK') {
-    token.cooldownUntil = now / 1000 + 300;
+  } else if (reason === 'STOP_LOSS') {
+    token.cooldownUntil = now / 1000 + 120;
   } else {
     token.cooldownUntil = now / 1000 + REENTRY_COOLDOWN_SECS;
   }

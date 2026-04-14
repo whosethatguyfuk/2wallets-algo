@@ -545,6 +545,19 @@ async function handleEvent(event) {
     const { token, trade, reason, exitMc } = event;
 
     if (!REAL_TRADING && trade) {
+      // Stop losses execute immediately — no slippage delay on exits
+      // (in real trading you'd use a limit order, not wait while price craters)
+      if (reason === 'STOP_LOSS') {
+        openCount = Math.max(0, openCount - 1);
+        const pnl = trade.pnlPct;
+        if (pnl > 0) { totalWins++; netPnlSol += POSITION_SOL * (pnl / 100); }
+        else          { totalLosses++; netPnlSol += POSITION_SOL * (pnl / 100); }
+        totalFeesSol += POSITION_SOL * TRADE_FEE_PCT;
+        if (!walletComparisons.has(token.mint)) walletComparisons.set(token.mint, { walletTrades: [], ourTrades: [] });
+        walletComparisons.get(token.mint).ourTrades.push({ ts: Date.now(), isBuy: false, sol: POSITION_SOL, mc: Math.round(exitMc), pnl: +pnl.toFixed(2), reason });
+        broadcast({ type: 'sell', mint: token.mint, symbol: token.symbol, pnl: pnl.toFixed(2), reason, exitMc: Math.round(exitMc), tranchesSold: trade?.tranchesSold || 0 });
+        return;
+      }
       const slippageTicks = 1 + Math.floor(Math.random() * 3);
       log('SLIPPAGE_QUEUE_SELL', token.symbol, token.mint, { triggerExitMc: Math.round(exitMc), reason, delayTicks: slippageTicks });
       pendingSells.set(token.mint, { token, trade, reason, triggerExitMc: exitMc, ticksLeft: slippageTicks, queuedAt: Date.now() });
@@ -1165,7 +1178,7 @@ app.get('/api/stats', (_req, res) => {
     .slice(0, 30);
 
   res.json({
-    version:    '3.1.0',
+    version:    '3.2.0',
     realTrading: REAL_TRADING,
     halted:     tradingHalted,
     walletSol:  realWalletSol,
